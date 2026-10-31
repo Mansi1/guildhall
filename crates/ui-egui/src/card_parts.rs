@@ -3,8 +3,8 @@
 //!
 //! Invariants: nothing is drawn that has no content; dates come from `views::date_text`.
 
-use artcraft_launcher_core::status::AppStatus;
 use egui::{Color32, FontId, Ui};
+use guildhall_core::status::AppStatus;
 
 use crate::i18n::fmt;
 use crate::model::AppEntry;
@@ -50,8 +50,8 @@ pub(crate) fn blurb(ui: &mut Ui, text: &str, color: Color32, rows: usize) {
 
 #[cfg(test)]
 mod tests {
-    use artcraft_launcher_core::protocol::LatestRelease;
-    use artcraft_launcher_core::{CraftApp, InstallSource, Installed, Release, version};
+    use guildhall_core::protocol::LatestRelease;
+    use guildhall_core::{CraftApp, InstallSource, Installed, Release, version};
 
     use super::*;
 

@@ -1,8 +1,8 @@
 //! The Settings dialog: a large card in the shape of the app page (see `sheet.rs`), with the
 //! groups of settings in boxes, two columns once the window is wide enough.
 
-use artcraft_launcher_core::{Os, PackageKind};
 use egui::{RichText, Ui, vec2};
+use guildhall_core::{Os, PackageKind};
 
 use crate::app::{Host, LauncherUi};
 use crate::i18n::fmt;
@@ -50,15 +50,10 @@ impl LauncherUi {
         let size = sheet::size(ui.ctx(), vec2(1000.0, 820.0));
         ui.set_width(size.x);
         ui.set_max_height(size.y);
-        let hero_h = sheet::hero(
-            ui,
-            Some(crate::icons::artcraft_mark()),
-            tl!("Settings"),
-            &format!("ArtCraft Launcher {}", env!("CARGO_PKG_VERSION")),
-            |_| {},
-        );
+        let hero_h =
+            sheet::hero(ui, Some(crate::icons::guildhall_mark()), tl!("Settings"), &format!("Guildhall {}", env!("CARGO_PKG_VERSION")), |_| {});
 
-        let quit_width = widgets::button_width(ui, tl!("Quit ArtCraft Launcher"), 0.0);
+        let quit_width = widgets::button_width(ui, tl!("Quit Guildhall"), 0.0);
         let done_width = widgets::button_width(ui, tl!("Done"), 90.0);
         let stack_actions = self.caps.manage_apps && quit_width + done_width + ui.spacing().item_spacing.x + 48.0 > size.x;
         let footer_h = if stack_actions { 2.0 * theme::CONTROL_H + ui.spacing().item_spacing.y } else { theme::CONTROL_H } + 32.0;
@@ -80,7 +75,7 @@ impl LauncherUi {
         egui::Frame::new().inner_margin(egui::Margin::symmetric(theme::PAD as i8, 16)).show(ui, |ui| {
             ui.set_width(ui.available_width());
             let quit = |ui: &mut Ui, host: &mut dyn Host| {
-                if self.caps.manage_apps && widgets::button(ui, tl!("Quit ArtCraft Launcher"), Kind::Secondary, 0.0).clicked() {
+                if self.caps.manage_apps && widgets::button(ui, tl!("Quit Guildhall"), Kind::Secondary, 0.0).clicked() {
                     host.quit();
                 }
             };
@@ -169,7 +164,7 @@ impl LauncherUi {
     /// backend manages apps runs a pass over pending updates at once. The automatic-update checkbox
     /// is hidden on hosts that cannot manage apps.
     fn settings_updates(&mut self, ui: &mut Ui) {
-        let launcher_id = artcraft_launcher_core::catalog::LAUNCHER_ID;
+        let launcher_id = guildhall_core::catalog::LAUNCHER_ID;
         self.request_versions(launcher_id);
         sheet::panel(ui, tl!("Updates"), |ui| {
             let mut every = self.settings.check_every;
@@ -195,7 +190,7 @@ impl LauncherUi {
             ui.checkbox(&mut self.settings.notify, tl!("Notify me when an installed app has an update"));
             ui.checkbox(&mut self.settings.prereleases, tl!("Include pre-releases (betas and release candidates)"));
             row(ui, tl!("Launcher version"), 200.0, &mut |ui, label| {
-                self.version_combo(ui, launcher_id, &artcraft_launcher_core::catalog::LAUNCHER, 200.0, label);
+                self.version_combo(ui, launcher_id, &guildhall_core::catalog::LAUNCHER, 200.0, label);
             });
             self.launcher_version_notes(ui);
         });
@@ -320,7 +315,7 @@ impl LauncherUi {
                 ));
             }
             if let Some(mut on) = host.login_item()
-                && ui.checkbox(&mut on, tl!("Start ArtCraft Launcher when I log in")).changed()
+                && ui.checkbox(&mut on, tl!("Start Guildhall when I log in")).changed()
                 && let Err(e) = host.set_login_item(on)
             {
                 self.toast_from_ui(fmt(tl!("Couldn't change the login item: {e}"), &[("e", &e)]), true);
@@ -328,30 +323,20 @@ impl LauncherUi {
         });
     }
 
-    /// Community links (Discord, website, GitHub and the social icons) opened through the safe
-    /// external-link path; it queues no app actions.
+    /// The unofficial notice and Guildhall's GitHub link, opened through the safe external-link
+    /// path; it queues no app actions.
     fn settings_community(&mut self, ui: &mut Ui) {
         let t = Tokens::get(ui.ctx());
         sheet::panel(ui, tl!("Community"), |ui| {
-            ui.label(RichText::new(tl!("Questions, ideas and news from the ArtCraft team")).color(t.muted));
+            ui.label(
+                RichText::new(tl!("Guildhall is unofficial: it is not made, endorsed or supported by ArtCraft. Ask for help on its GitHub page."))
+                    .color(t.muted),
+            );
             ui.add_space(6.0);
-            ui.horizontal_wrapped(|ui| {
-                use artcraft_launcher_core::catalog::{GITHUB_URL, WEBSITE_URL};
-                if widgets::button(ui, tl!("Join the Discord"), Kind::Primary, 0.0).on_hover_text(self.discord_url).clicked() {
-                    widgets::open_external_link(ui.ctx(), self.discord_url);
-                }
-                if widgets::button(ui, tl!("Website"), Kind::Secondary, 0.0).on_hover_text(WEBSITE_URL).clicked() {
-                    widgets::open_external_link(ui.ctx(), WEBSITE_URL);
-                }
-                if widgets::button(ui, tl!("GitHub"), Kind::Secondary, 0.0).on_hover_text(GITHUB_URL).clicked() {
-                    widgets::open_external_link(ui.ctx(), GITHUB_URL);
-                }
-                // Wrap the social links as a group so their icons stay together.
-                let width = widgets::icon_links_width(artcraft_launcher_core::catalog::SOCIAL.len(), 16.0);
-                ui.allocate_ui_with_layout(vec2(width, theme::CONTROL_H), egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                    widgets::social_icons(ui, 16.0);
-                });
-            });
+            use guildhall_core::catalog::GITHUB_URL;
+            if widgets::button(ui, tl!("GitHub"), Kind::Primary, 0.0).on_hover_text(GITHUB_URL).clicked() {
+                widgets::open_external_link(ui.ctx(), GITHUB_URL);
+            }
         });
     }
 

@@ -1,4 +1,4 @@
-# egui 0.37 migration plan for ArtCraft Launcher
+# egui 0.37 migration plan for Guildhall
 
 Current review candidate (2026-10-25): reconciles main `f0cb3b0439d15cae02d806e5ddc0132fd487c89c`. Managed run `egui037-launcher-review-ci-20261025-0816` passed all four CI stages including WASM: 442 passing test executions, zero failures and five ignored across 22 summaries. Unicode credential redaction uses byte boundaries; regression run 0821 reproduced the previous panic and run 0823 passed on the restored fixed source. External-link buttons share the validated opener, and terminal text sanitizes C1 controls and Unicode line separators. Independent review covered the reconciliation and fixes. Old v0.7 single-instance interoperability remains unqualified; quit the existing tray process before upgrading. Current-source native/browser/package and paired performance acceptance remain open. Publication requires explicit approval; human review and human merge are required.
 
@@ -26,7 +26,7 @@ at that baseline. The status above and the dated implementation amendments at th
 their stale status and decision statements. F1's dependency-publication gate is now closed by the canonical pins and generated lock;
 the original plan's emoji-font decision was revised on 2026-10-24.
 
-This plan covers only `storytold/craft-launcher` (the ArtCraft Launcher repository). It records the
+This plan covers only `Mansi1/guildhall` (the Guildhall repository). It records the
 app-specific migration, not a generic egui compatibility layer. `craft-libs`, the individual Craft
 apps, the egui fork and the winit fork each keep their own plans.
 
@@ -91,8 +91,8 @@ egui_kittest = "0.36"
 `crates/ui-egui` adds `egui_extras` with `image` and `svg`, and `egui_kittest` with `wgpu` and
 `snapshot` (`crates/ui-egui/Cargo.toml:15-16,36`). The native app enables
 `default_fonts`, `wgpu`, `accesskit`, `wayland`, `x11`, `persistence` and `links` on eframe
-(`apps/artcraft-launcher/Cargo.toml:23`). The web app enables
-`default_fonts`, `wgpu`, `accesskit` and `persistence` (`apps/artcraft-launcher-web/Cargo.toml:25`).
+(`apps/guildhall/Cargo.toml:23`). The web app enables
+`default_fonts`, `wgpu`, `accesskit` and `persistence` (`apps/guildhall-web/Cargo.toml:25`).
 
 ### 1.3 Target revisions and research sources
 
@@ -136,11 +136,11 @@ acceptance evidence for this plan or for a future implementation.
 
 | Package | Kind | egui-facing? | Notes |
 | --- | --- | --- | --- |
-| `artcraft-launcher-core` (`crates/core`) | library | no | pure, wasm-safe; release JSON parsing, catalog, protocol |
-| `artcraft-launcher-native` (`crates/native`) | library | no | desktop backend, installer, HTTP, self-update, tray helpers; `local-mirror` feature |
-| `artcraft-launcher-ui-egui` (`crates/ui-egui`) | library | yes | shared UI used by both apps; own `#![deny(...)]` panic lints |
-| `artcraft-launcher` (`apps/artcraft-launcher`) | binary | yes | eframe shell, tray, window, notifications, settings file |
-| `artcraft-launcher-web` (`apps/artcraft-launcher-web`) | binary | yes (wasm only) | trunk build; browser catalog/downloads |
+| `guildhall-core` (`crates/core`) | library | no | pure, wasm-safe; release JSON parsing, catalog, protocol |
+| `guildhall-native` (`crates/native`) | library | no | desktop backend, installer, HTTP, self-update, tray helpers; `local-mirror` feature |
+| `guildhall-ui-egui` (`crates/ui-egui`) | library | yes | shared UI used by both apps; own `#![deny(...)]` panic lints |
+| `guildhall` (`apps/guildhall`) | binary | yes | eframe shell, tray, window, notifications, settings file |
+| `guildhall-web` (`apps/guildhall-web`) | binary | yes (wasm only) | trunk build; browser catalog/downloads |
 | `xtask` | binary | no | `ci`, `wasm`, `version`, icon, local mirror |
 
 Platform targets that the repository packages or checks:
@@ -150,16 +150,16 @@ Platform targets that the repository packages or checks:
 - Windows x64, x86, arm64: MSI and portable ZIP.
 - macOS universal DMG.
 - FreeBSD x86_64 tarball.
-- Web `artcraft-launcher-web-<version>.zip`; wasm32-unknown-unknown.
+- Web `guildhall-web-<version>.zip`; wasm32-unknown-unknown.
 
 ### 2.2 Entry points
 
 | Path | Anchor | Role |
 | --- | --- | --- |
-| `apps/artcraft-launcher/src/main.rs` | `fn main` at 36; `eframe::run_native` at 118; window loop 114-142 | native process, single instance, tray loop, window recreation |
-| `apps/artcraft-launcher/src/main.rs` | `native_options` at 144 | viewport, decorations, persistence path, wgpu options |
-| `apps/artcraft-launcher/src/main.rs` | `impl eframe::App for Shell` at 715; `logic` 716; `ui` 746; `raw_input_hook` 763; `save` 769; `clear_color` 773 | native eframe entry points |
-| `apps/artcraft-launcher-web/src/web.rs` | `start()` at 68; `WebRunner` at 78; `impl eframe::App for WebApp` at 112 | wasm entry point |
+| `apps/guildhall/src/main.rs` | `fn main` at 36; `eframe::run_native` at 118; window loop 114-142 | native process, single instance, tray loop, window recreation |
+| `apps/guildhall/src/main.rs` | `native_options` at 144 | viewport, decorations, persistence path, wgpu options |
+| `apps/guildhall/src/main.rs` | `impl eframe::App for Shell` at 715; `logic` 716; `ui` 746; `raw_input_hook` 763; `save` 769; `clear_color` 773 | native eframe entry points |
+| `apps/guildhall-web/src/web.rs` | `start()` at 68; `WebRunner` at 78; `impl eframe::App for WebApp` at 112 | wasm entry point |
 | `crates/ui-egui/src/app.rs` | `LauncherUi::new` 177; `attach` 227; `raw_input` 239; `logic` 315; `handle` 360; `ui` 564 | shared UI lifecycle |
 | `xtask/src/main.rs` | `cmd_ci`, `cmd_wasm` | repository gate |
 
@@ -196,7 +196,7 @@ shells beyond the native and web binaries.
   (`main.rs:354`, `666-713`) send `Visible`, `Minimized`, `Focus`, `CancelClose`, `Close`.
 - **Screenshots**: the app's `Event::Screenshot` is its own protocol event for downloaded app
   pictures (`crates/core/src/protocol.rs:226`; emitted at `crates/native/src/backend.rs:958` and
-  `apps/artcraft-launcher-web/src/web.rs:168`). It is **not** egui's
+  `apps/guildhall-web/src/web.rs:168`). It is **not** egui's
   `ViewportCommand::Screenshot`. The launcher has no egui screenshot command.
 
 ### 2.4 Current tests and CI
@@ -208,14 +208,14 @@ Source-declared `#[test]` counts at the baseline (not proof of execution; the fi
 | `crates/core` | 44 |
 | `crates/native` | 214 |
 | `crates/ui-egui` | 119 (62 in `tests/ui.rs`, 9 language binaries, 31 in `i18n/tests.rs`, 6 motion, 5 CJK, and others) |
-| `apps/artcraft-launcher` | 45 |
+| `apps/guildhall` | 45 |
 | `xtask` | 16 |
 | workspace total | 438 |
 
 Existing UI tests drive `LauncherUi` through `egui_kittest::Harness` with fake backends
 (`crates/ui-egui/tests/ui.rs`). They assert labels, commands, geometry, focus, scroll, dialogs,
 details pictures and window commands. `snapshot()` writes a PNG only when
-`ARTCRAFT_LAUNCHER_SNAPSHOTS` is set; there are no committed pixel goldens. The two documentation
+`GUILDHALL_SNAPSHOTS` is set; there are no committed pixel goldens. The two documentation
 screenshots in `docs/screenshots/` are not test fixtures.
 
 CI (`.github/workflows/ci.yml`) runs on Ubuntu and Windows:
@@ -225,7 +225,7 @@ cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo test --workspace --locked
 cargo xtask wasm
-cargo clippy -p artcraft-launcher-core -p artcraft-launcher-web \
+cargo clippy -p guildhall-core -p guildhall-web \
   --target wasm32-unknown-unknown --locked -- -D warnings
 packaging/web/package.sh
 ```
@@ -266,7 +266,7 @@ rather than assuming.
 
 - **`default_fonts` is no longer an egui default feature** (#8583). `eframe` still maps its own
   `default_fonts` feature to `egui/default_fonts`, and both app manifests enable that eframe
-  feature. The standalone `artcraft-launcher-ui-egui` test build does not use eframe, so it must
+  feature. The standalone `guildhall-ui-egui` test build does not use eframe, so it must
   add `egui/default_fonts` explicitly to its dev dependency (or workspace feature set) or
   `FontDefinitions::default()` will be empty and most labels will have no glyphs.
 - **`monochrome_emoji_fonts` is separate** from `default_fonts`. 0.36's
@@ -286,7 +286,7 @@ rather than assuming.
 - **`eframe`'s `clipboard` feature is now optional** (#8392). The native app builds eframe with
   `default-features = false` and does not currently enable `clipboard`; on 0.37 that yields the
   simulated in-app clipboard, not the OS clipboard. Add `clipboard` to
-  `apps/artcraft-launcher/Cargo.toml` and test copy/paste and PRIMARY.
+  `apps/guildhall/Cargo.toml` and test copy/paste and PRIMARY.
 - **`system_fonts` is a new eframe default feature**, but this workspace disables eframe defaults
   and does not enable it. `NativeOptions::system_font_fallback` defaults to true; with the feature
   off, eframe installs a `MissingSystemFontsWarning` provider. Set `system_font_fallback: false`
@@ -362,7 +362,7 @@ rather than assuming.
 - `Context::root_ui` panics if called while the root `Ui` is borrowed (#8535). The app currently
   uses `run_ui`/App::ui and passes the root `Ui` into panels; overlays use `Area`/`Modal` with a
   `Context`, not `Context::root_ui`, so it is safe. Add an explicit invariant test and a source
-  check that no `root_ui(` call exists in `crates/ui-egui` or `apps/artcraft-launcher`.
+  check that no `root_ui(` call exists in `crates/ui-egui` or `apps/guildhall`.
 - `Context::run_ui` can call its closure more than once after `request_discard`; `Context::run_logic`
   leaves events/time stale and performs no layout. 0.37 calls `request_discard` at least from
   `Resize` (`containers/resize.rs:286`), the first `Aligned` sizing pass (`containers/aligned.rs:95`)
@@ -776,7 +776,7 @@ Implementation details:
 The launcher uses no fork-only API today. It benefits from these fork behaviours without source
 changes:
 
-| Patch | Relevance to ArtCraft Launcher | Decision |
+| Patch | Relevance to Guildhall | Decision |
 | --- | --- | --- |
 | E1 `ViewportHooks` | none; one root viewport | keep in dependency; compile only |
 | E2+E3 surface fit / error scopes | large or multi-monitor windows | keep; measure oversized window and error path |
@@ -974,7 +974,7 @@ python3 /home/codex/work/maintenance/task.py run \
   --job-id launcher-egui037-wasm-clippy-01 --task launcher-egui037 --kind build \
   --source /home/codex/work/CraftApps/egui037-migration-20261022/craft-launcher \
   --evidence /home/codex/work/ssd2/task-evidence/launcher-egui037 \
-  -- cargo clippy -p artcraft-launcher-core -p artcraft-launcher-web \
+  -- cargo clippy -p guildhall-core -p guildhall-web \
      --target wasm32-unknown-unknown --locked -- -D warnings
 ```
 
@@ -1295,7 +1295,7 @@ Files:
 - `crates/ui-egui/Cargo.toml` (dev `default_fonts`), native `Cargo.toml` (`clipboard`), root
   `Cargo.toml` (`egui` with `monochrome_emoji_fonts`), and `ATTRIBUTION.md` for the bundled
   dependency fonts.
-- `apps/artcraft-launcher/src/main.rs` (`system_font_fallback: false`); fixed header/footer
+- `apps/guildhall/src/main.rs` (`system_font_fallback: false`); fixed header/footer
   geometry tests in the UI crate, without a PanelState migration.
 - `crates/ui-egui/src/views.rs`, `bar.rs`, `widgets.rs` (painter-drawn gear/refresh),
   `theme.rs` (bundled emoji coverage and dynamic-text glyph fixture), and
@@ -1324,7 +1324,7 @@ Files:
 - `crates/ui-egui/src/details.rs`, `dialogs.rs`, `views.rs` (all UI calls through `act`,
   including the launcher-update banner; remaining role/name work).
 - `crates/ui-egui/src/widgets.rs` (menu and icon-button accessible names).
-- `apps/artcraft-launcher/src/main.rs` (any shell wording).
+- `apps/guildhall/src/main.rs` (any shell wording).
 - Focused tests for each behavior, including the per-frame dedup reset, both-actions-in-pass-2,
   `fonts_ready` early return, hidden/forced-paint lifecycle and the scoped unnamed-widget harness.
 
@@ -1429,7 +1429,7 @@ plan authorizes a push or PR.
 Primary source anchors used by this plan:
 
 - `Cargo.toml:23-26` (egui pins; workspace dependency block begins at 21); `crates/ui-egui/Cargo.toml:15-16,36`;
-  `apps/artcraft-launcher/Cargo.toml:23`; `apps/artcraft-launcher-web/Cargo.toml:25`.
+  `apps/guildhall/Cargo.toml:23`; `apps/guildhall-web/Cargo.toml:25`.
 - `crates/ui-egui/src/app.rs:103-174` (`LauncherUi`), `:177` (`new`), `:227` (`attach`), `:239`
   (`raw_input`), `:269` (`toast`), `:285` (`configure`), `:315` (`logic`), `:360` (`handle`),
   `:540` (`zoom_input`), `:564` (`ui`), `:604/609/614` (panels), `:649` (`visible_ids`), `:712`
@@ -1453,12 +1453,12 @@ Primary source anchors used by this plan:
   cache).
 - `crates/ui-egui/src/settings.rs:84-140` (`Settings` fields), `crates/ui-egui/src/i18n/tests.rs`
   (catalog/glyph tests).
-- `apps/artcraft-launcher/src/main.rs:36` (`fn main`), `:118` (`eframe::run_native` call), `:144`
+- `apps/guildhall/src/main.rs:36` (`fn main`), `:118` (`eframe::run_native` call), `:144`
   (`native_options`), `:190/225/236/258/280` (wgpu), `:333-391` (window/tray helpers), `:565`
   (`tick`), `:608/620` (tray loop), `:715-775` (`Shell` App impl).
-- `apps/artcraft-launcher/src/settings_file.rs:24-83` (RON storage), `motion.rs` and
+- `apps/guildhall/src/settings_file.rs:24-83` (RON storage), `motion.rs` and
   `system_theme.rs` for platform settings.
-- `apps/artcraft-launcher-web/src/web.rs:60-88` (language/start), `:112-127` (web App),
+- `apps/guildhall-web/src/web.rs:60-88` (language/start), `:112-127` (web App),
   `:168/315` (picture protocol).
 - `crates/core/src/protocol.rs:16-60` (`Command`), `:226` (`Event::Screenshot`).
 - Historical evidence paths are listed in §1.3 and are not acceptance.
@@ -1490,7 +1490,7 @@ exact contents and validation are shown.
 
 The user clarified that reviewed plans remain local and implementation proceeds before publication. The earlier requirement to publish/land this plan first is superseded; pushes and PR publication still require explicit approval.
 
-At the time of the 2026-10-23 refresh, canonical `storytold/craft-launcher` `main` resolved to `ce3b29f4f23bf958b457a55effae87127f5b5dd4`. The owned checkout was later fast-forwarded to `674b893f0e5dcaceb742ae22728b8bde8bd73911`, which is the current tested HEAD for this implementation; the `ce3b29f4` value is retained as historical provenance. Earlier baseline SHAs and line anchors above remain historical review evidence. The original refs remain reachable.
+At the time of the 2026-10-23 refresh, canonical `Mansi1/guildhall` `main` resolved to `ce3b29f4f23bf958b457a55effae87127f5b5dd4`. The owned checkout was later fast-forwarded to `674b893f0e5dcaceb742ae22728b8bde8bd73911`, which is the current tested HEAD for this implementation; the `ce3b29f4` value is retained as historical provenance. Earlier baseline SHAs and line anchors above remain historical review evidence. The original refs remain reachable.
 
 No migration API redesign required by this delta; preserve the merged packaging, test and chrono changes where present.
 
@@ -1504,9 +1504,9 @@ The working tree now contains the migration implementation and is no longer plan
 source and validation references:
 
 - Checkout HEAD: `674b893f0e5dcaceb742ae22728b8bde8bd73911`.
-- Managed tests: `egui037-launcher-candidate-20261024-upstream-tests-15` (exit 0; `artcraft-launcher-ui-egui` lib tests 60 passed, integration tests 67 passed, 0 failed).
-- Managed lints/build: `egui037-launcher-candidate-20261024-upstream-native-lints-16` (exit 0; workspace clippy `-D warnings` and native `artcraft-launcher` build).
-- Managed native GUI: `egui037-launcher-candidate-20261024-upstream-native-gui-17` and the session artifacts under `native-launcher-session-v3` (Settings at 1440x900 and 1000x700, Light theme, restart/theme persistence, normal quit, exit 0). The assessed source patch is `tested-source.patch` (SHA-256 `60e33f323344a7d33c6ced0eccf18d2c6013b46e6202c7136a7eb080d52d2cba`), the tested executable is `artcraft-launcher-tested` (SHA-256 `a94e0ea7022b43c5a7456aef485bfe67be7e6d1dcceaffeb2e2a515ce44ab5d1`), and `assessment.json` records `PASS` with the stated Wayland/software-Vulkan limitations.
+- Managed tests: `egui037-launcher-candidate-20261024-upstream-tests-15` (exit 0; `guildhall-ui-egui` lib tests 60 passed, integration tests 67 passed, 0 failed).
+- Managed lints/build: `egui037-launcher-candidate-20261024-upstream-native-lints-16` (exit 0; workspace clippy `-D warnings` and native `guildhall` build).
+- Managed native GUI: `egui037-launcher-candidate-20261024-upstream-native-gui-17` and the session artifacts under `native-launcher-session-v3` (Settings at 1440x900 and 1000x700, Light theme, restart/theme persistence, normal quit, exit 0). The assessed source patch is `tested-source.patch` (SHA-256 `60e33f323344a7d33c6ced0eccf18d2c6013b46e6202c7136a7eb080d52d2cba`), the tested executable is `guildhall-tested` (SHA-256 `a94e0ea7022b43c5a7456aef485bfe67be7e6d1dcceaffeb2e2a515ce44ab5d1`), and `assessment.json` records `PASS` with the stated Wayland/software-Vulkan limitations.
 - These jobs used `/home/codex/work/ssd2/task-evidence/egui037-migration-20261022/local-integration-config.toml`. F1 is therefore still open: the committed lockfile is not reproducible from the published checkout without an external patch file. The local pin architecture is unchanged in this repair; final immutable egui/winit pins and a lockfile generated by the ordinary locked workflow remain a publication gate.
 
 The 2026-10-24 repair also enables egui's `monochrome_emoji_fonts` on native and web for arbitrary

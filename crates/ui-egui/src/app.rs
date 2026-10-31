@@ -2,12 +2,12 @@
 
 use std::time::Duration;
 
-use artcraft_launcher_core::protocol::{
+use guildhall_core::protocol::{
     Backend, BackendOptions, CANCELLED, Capabilities, Command, Event, INSTALL_CANCELLED, JobPhase, LatestRelease, PAUSED, Source,
 };
-use artcraft_launcher_core::release::Release;
-use artcraft_launcher_core::status::AppStatus;
-use artcraft_launcher_core::{Arch, PackageKind, Platform, SUITE};
+use guildhall_core::release::Release;
+use guildhall_core::status::AppStatus;
+use guildhall_core::{Arch, PackageKind, Platform, SUITE};
 
 use crate::i18n::set_current;
 use crate::model::AppEntry;
@@ -70,7 +70,7 @@ pub trait Host {
     }
     /// The URL to open when Discord is clicked. Defaults to the web link.
     fn discord_url(&self) -> &'static str {
-        artcraft_launcher_core::catalog::DISCORD_URL
+        guildhall_core::catalog::DISCORD_URL
     }
     /// Quit the launcher for real (not just hide to the tray).
     fn quit(&mut self) {}
@@ -114,7 +114,7 @@ pub(crate) enum Dialog {
     Install { app: String, folder: String },
     Replace { app: String, path: String },
     Settings,
-    LauncherUpdate(artcraft_launcher_core::Release),
+    LauncherUpdate(guildhall_core::Release),
     Versions(String),
 }
 
@@ -148,15 +148,15 @@ pub struct LauncherUi {
     pub(crate) version_requests: std::collections::HashSet<String>,
     /// While the Choose version dialog is open: its app and the choice it had before, put back
     /// unless the dialog's Install keeps the new one.
-    pub(crate) version_before: Option<(String, artcraft_launcher_core::protocol::VersionTrack)>,
+    pub(crate) version_before: Option<(String, guildhall_core::protocol::VersionTrack)>,
     /// The launcher's own update, while it downloads and installs.
-    pub(crate) launcher_job: Option<artcraft_launcher_core::protocol::JobPhase>,
+    pub(crate) launcher_job: Option<guildhall_core::protocol::JobPhase>,
     /// The new launcher is in place: quit so it can start.
     restart_requested: bool,
     /// News from ArtCraft's release feed, shown inline until dismissed.
-    pub(crate) announcements: Vec<artcraft_launcher_core::feed::Notice>,
+    pub(crate) announcements: Vec<guildhall_core::feed::Notice>,
     /// Alerts from the feed, shown as popups until acknowledged.
-    pub(crate) alerts: Vec<artcraft_launcher_core::feed::Notice>,
+    pub(crate) alerts: Vec<guildhall_core::feed::Notice>,
     pub(crate) search: String,
     pub(crate) toasts: Vec<Toast>,
     pub(crate) dialog: Option<Dialog>,
@@ -194,8 +194,6 @@ pub struct LauncherUi {
     /// Versions of apps or the launcher already queued for auto-update during this session,
     /// preventing repeated install loops if an update fails or is in progress.
     pub(crate) auto_update_attempted: std::collections::BTreeSet<(String, String)>,
-    /// The URL or deep link to open when Discord is clicked.
-    pub(crate) discord_url: &'static str,
     /// UI actions drawn in this pass, not sent yet.
     pending: Vec<UiAction>,
     /// The `egui::Context::cumulative_frame_nr` those actions belong to.
@@ -282,7 +280,6 @@ impl LauncherUi {
             last_detect: 0,
             was_focused: true,
             auto_update_attempted: std::collections::BTreeSet::new(),
-            discord_url: artcraft_launcher_core::catalog::DISCORD_URL,
             pending: Vec::new(),
             frame: None,
             flushed: Vec::new(),
@@ -448,9 +445,7 @@ impl LauncherUi {
 
     pub(crate) fn custom_install_folders(&self) -> bool {
         self.caps.manage_apps
-            && self.platform.is_some_and(|p| {
-                matches!(p.os, artcraft_launcher_core::Os::Windows | artcraft_launcher_core::Os::MacOs | artcraft_launcher_core::Os::Linux)
-            })
+            && self.platform.is_some_and(|p| matches!(p.os, guildhall_core::Os::Windows | guildhall_core::Os::MacOs | guildhall_core::Os::Linux))
             && !crate::settings::is_flatpak_sandbox()
     }
 
@@ -601,7 +596,7 @@ impl LauncherUi {
     }
 
     // A failed check keeps the release we already know about (and where it came from).
-    fn on_latest(&mut self, app: String, latest: LatestRelease, from: artcraft_launcher_core::protocol::Origin) {
+    fn on_latest(&mut self, app: String, latest: LatestRelease, from: guildhall_core::protocol::Origin) {
         if let Some(e) = self.entry_mut(&app)
             && !(matches!(latest, LatestRelease::Failed(_)) && matches!(e.latest, Some(LatestRelease::Found(_))))
         {
@@ -612,7 +607,7 @@ impl LauncherUi {
 
     // Routes a job phase to the launcher's own slot or to the app card it belongs to.
     fn on_progress(&mut self, app: String, phase: JobPhase) {
-        if app == artcraft_launcher_core::catalog::LAUNCHER_ID {
+        if app == guildhall_core::catalog::LAUNCHER_ID {
             self.launcher_job = Some(phase);
             if matches!(self.dialog, Some(Dialog::LauncherUpdate(_))) {
                 self.dialog = None;
@@ -624,7 +619,7 @@ impl LauncherUi {
 
     /// Summarizes a job's end as a toast; cancellations have their own messages.
     fn on_job_finished(&mut self, app: String, result: Result<String, String>) {
-        let launcher = app == artcraft_launcher_core::catalog::LAUNCHER_ID;
+        let launcher = app == guildhall_core::catalog::LAUNCHER_ID;
         // What the job was doing when it ended says what a cancellation called off.
         let last = if launcher { self.launcher_job.take() } else { self.entry(&app).and_then(|e| e.job) };
         if let Some(e) = self.entry_mut(&app) {
@@ -683,7 +678,7 @@ impl LauncherUi {
         if self.settings.notify {
             let (title, body) = match fresh.as_slice() {
                 [(_, name, v)] => {
-                    let body: String = tl!("Open ArtCraft Launcher to update.").to_string();
+                    let body: String = tl!("Open Guildhall to update.").to_string();
                     (crate::i18n::fmt(tl!("{name} {v} is available"), &[("name", name), ("v", v)]), body)
                 }
                 many => {
@@ -707,7 +702,7 @@ impl LauncherUi {
         }
         self.settings.tray_hint_shown = true;
         host.notify(
-            tl!("ArtCraft Launcher is still running"),
+            tl!("Guildhall is still running"),
             tl!("It's in the tray: open it or quit it from the tray icon, or turn this off in the settings."),
         );
     }
@@ -735,7 +730,7 @@ impl LauncherUi {
             && let Some(r) = &self.launcher_update
             && self.launcher_job.is_none()
         {
-            let id = artcraft_launcher_core::catalog::LAUNCHER_ID.to_string();
+            let id = guildhall_core::catalog::LAUNCHER_ID.to_string();
             let v = r.version_label();
             if !self.auto_update_attempted.contains(&(id.clone(), v.clone())) {
                 log::info!("auto-update: queuing launcher self-update to {v}");
@@ -808,7 +803,6 @@ impl LauncherUi {
             motion::apply(&ctx, self.reduce_motion);
             self.applied_motion = Some(self.reduce_motion);
         }
-        self.discord_url = host.discord_url();
         let tokens = Tokens::get(&ctx);
         if self.entries.iter().any(|e| e.job.is_some()) || self.checking {
             ctx.request_repaint_after(Duration::from_millis(50));
@@ -936,7 +930,7 @@ impl LauncherUi {
     /// "ArtCraft API", "GitHub" or "ArtCraft API and GitHub": the services behind the releases on
     /// screen right now. `None` until something has loaded.
     pub(crate) fn sources_label(&self) -> Option<String> {
-        use artcraft_launcher_core::protocol::Origin;
+        use guildhall_core::protocol::Origin;
         let mut api = false;
         let mut github = false;
         for e in &self.entries {

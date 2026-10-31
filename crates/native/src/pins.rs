@@ -10,8 +10,8 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use artcraft_launcher_core::protocol::VersionTrack;
 use craft_update::pins::{Pins, VersionTrack as SharedTrack};
+use guildhall_core::protocol::VersionTrack;
 
 fn shared(track: &VersionTrack) -> SharedTrack {
     match track {

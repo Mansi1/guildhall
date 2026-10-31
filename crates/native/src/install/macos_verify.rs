@@ -6,7 +6,7 @@
 use std::path::Path;
 use std::time::Duration;
 
-use artcraft_launcher_core::CraftApp;
+use guildhall_core::CraftApp;
 
 const CODESIGN: &str = "/usr/bin/codesign";
 const SPCTL: &str = "/usr/sbin/spctl";
@@ -205,7 +205,7 @@ mod tests {
     #[test]
     fn mac_install_failed_or_unknown_checks_preserve_old_bytes_records_and_cached_download() {
         use crate::install::macos::{Expect, check_and_swap};
-        use artcraft_launcher_core::{InstallSource, Installed};
+        use guildhall_core::{InstallSource, Installed};
         let app = solidcraft();
         let dir = tempfile::tempdir().unwrap();
         let staged = dir.path().join("new.app");
@@ -247,7 +247,7 @@ mod tests {
     #[test]
     #[ignore = "needs the independently staged real release; no app execution or swap"]
     fn mac_install_real_release_passes_the_production_verifier() {
-        let bundle = std::env::var_os("ARTCRAFT_LAUNCHER_TEST_STAGED_APP").expect("set the owned staged release path");
+        let bundle = std::env::var_os("GUILDHALL_TEST_STAGED_APP").expect("set the owned staged release path");
         verify_with(solidcraft(), Path::new(&bundle), "G5QA5U5X2S", crate::process::run).unwrap();
     }
 }

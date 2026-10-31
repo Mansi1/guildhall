@@ -118,7 +118,7 @@ pub fn download_prefix(repo: &str) -> String {
 /// Whether `url` is a download that truly belongs to `repo`.
 ///
 /// A raw `starts_with(prefix)` check is not enough: a value such as
-/// `https://github.com/storytold/craft-launcher/releases/download/../../../ATTACKER/REPO/releases/download/v1/x`
+/// `https://github.com/Mansi1/guildhall/releases/download/../../../ATTACKER/REPO/releases/download/v1/x`
 /// shares the prefix textually, yet its interpreted path escapes the repository. The link is
 /// accepted only when the text after the prefix is exactly `<tag>/<name>` — two non-empty path
 /// segments with no traversal (`.`/`..`), no additional slashes, no query or fragment, and no

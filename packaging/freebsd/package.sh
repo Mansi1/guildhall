@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Build and package ArtCraft Launcher for FreeBSD:
+# Build and package Guildhall for FreeBSD:
 #
-#   $DIST/artcraft-launcher-<version>-freebsd-x86_64.tar.gz   a /usr/local-style tree:
-#       artcraft-launcher-<version>-freebsd-x86_64/{bin, share/applications, share/icons,
-#       share/metainfo, share/doc/artcraft-launcher}
+#   $DIST/guildhall-<version>-freebsd-x86_64.tar.gz   a /usr/local-style tree:
+#       guildhall-<version>-freebsd-x86_64/{bin, share/applications, share/icons,
+#       share/metainfo, share/doc/guildhall}
 #
 # Install by copying the tree's contents into /usr/local:
-#   tar -xzf artcraft-launcher-<version>-freebsd-x86_64.tar.gz --strip-components 1 -C /usr/local
+#   tar -xzf guildhall-<version>-freebsd-x86_64.tar.gz --strip-components 1 -C /usr/local
 #
 # Usage: packaging/freebsd/package.sh [--skip-build] [--dry-run]
 #   --dry-run   stage the tree from a stub binary and list it, without building (works on any OS)
@@ -16,8 +16,8 @@ set -euo pipefail
 # shellcheck source=../env.sh
 . "$(dirname "${BASH_SOURCE[0]}")/../env.sh"
 LINUX="$ROOT/packaging/linux"
-APP_ID=ai.storyteller.artcraft-launcher
-PKG=artcraft-launcher
+APP_ID=io.github.mansi1.guildhall
+PKG=guildhall
 
 SKIP_BUILD=0
 DRY_RUN=0
@@ -53,7 +53,7 @@ if [[ "$DRY_RUN" = 0 ]] && [[ "$(uname -s)" != FreeBSD ]]; then
 fi
 BASENAME="$PKG-$VERSION-freebsd-$ARCH"
 
-echo "==> ArtCraft Launcher $VERSION for FreeBSD $ARCH"
+echo "==> Guildhall $VERSION for FreeBSD $ARCH"
 
 export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-4}"
 if [[ "$SKIP_BUILD" = 0 ]]; then
@@ -84,7 +84,7 @@ install -m 755 "$BIN/$PKG" "$STAGE/bin/"
 strip "$STAGE/bin/$PKG" 2>/dev/null || true
 # The desktop entry, metainfo and icons are the freedesktop files Linux ships.
 install -m 644 "$LINUX/$APP_ID.desktop" "$STAGE/share/applications/$APP_ID.desktop"
-sed -e "s/@VERSION@/$VERSION/g" -e "s/@DATE@/$ARTCRAFT_LAUNCHER_BUILD_DATE/g" \
+sed -e "s/@VERSION@/$VERSION/g" -e "s/@DATE@/$GUILDHALL_BUILD_DATE/g" \
   "$LINUX/$APP_ID.metainfo.xml.in" >"$STAGE/share/metainfo/$APP_ID.metainfo.xml"
 cp -R "$ROOT/assets/app-icon/hicolor" "$STAGE/share/icons/"
 copy_docs "$STAGE/share/doc/$PKG"

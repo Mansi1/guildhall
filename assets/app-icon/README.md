@@ -1,29 +1,23 @@
-# ArtCraft Launcher app icon
+# Guildhall app icon
 
-The app icon is the **ArtCraft "A" mark in blue** (getartcraft.com's favicon), exactly as supplied in
-[`docs/brand/artcraft-mark.svg`](../../docs/brand/artcraft-mark.svg). Every file in this
-directory is rendered from it by `packaging/icons.sh`.
-
-**These files are an ArtCraft trademark. They are not open source and not covered by ArtCraft
-Launcher's MIT or Apache-2.0 license.** Their terms are in
-[`docs/brand/LICENSE-brand.txt`](../../docs/brand/LICENSE-brand.txt): use them only as part of
-ArtCraft Launcher, never redraw, recolor or crop them, and remove them from forks and modified
-versions.
+The app icon is a columned hall in cream on a copper square: original Guildhall artwork, MIT OR
+Apache-2.0 like the code. Every file in this directory is rendered by `packaging/icons.sh` from
+the two SVG sources below.
 
 ## Files
 
-- `artcraft-launcher.svg`: a copy of `docs/brand/artcraft-mark.svg`; also the hicolor scalable icon.
-- `artcraft-launcher-1024.png`: 1024 px render, with extra transparent margin for Apple's icon grid.
-- `artcraft-launcher.icns`: macOS bundle icon (`CFBundleIconFile`).
-- `artcraft-launcher.ico`: Windows icon, 16–256 px, embedded in the `.exe` by
-  `apps/artcraft-launcher/build.rs` and used by the MSI.
-- `hicolor/<size>/apps/ai.storyteller.artcraft-launcher.png` (16–512) and
-  `hicolor/scalable/apps/ai.storyteller.artcraft-launcher.svg`: Linux icon theme.
-- The tray / menu-bar icon is the same mark, rendered into `docs/brand/artcraft-mark-black-44.png`
-  (macOS template, 22 pt @2x) and `docs/brand/artcraft-mark-64.png` (blue; Windows, Linux, FreeBSD).
+- `guildhall.svg`: the source of the app icon; also the hicolor scalable icon.
+- `guildhall-mark-black.svg`: the hall alone in black, the source of the macOS menu-bar template.
+- `guildhall-1024.png`: 1024 px render, with extra transparent margin for Apple's icon grid.
+- `guildhall.icns`: macOS bundle icon (`CFBundleIconFile`).
+- `guildhall.ico`: Windows icon, 16–256 px, embedded in the `.exe` by
+  `apps/guildhall/build.rs` and used by the MSI.
+- `hicolor/<size>/apps/io.github.mansi1.guildhall.png` (16–512) and
+  `hicolor/scalable/apps/io.github.mansi1.guildhall.svg`: Linux icon theme.
+- `tray-mark-black-44.png` (macOS template, 22 pt @2x) and `tray-64.png` (Windows, Linux,
+  FreeBSD): the tray / menu-bar icon.
 
 ## Regenerate
 
-Run `packaging/icons.sh` on any OS. It needs `resvg`; the `.ico` and `.icns` are packed by
-`cargo xtask ico`. Never edit these files by hand: change the source only if the ArtCraft Team
-supplies a new mark in `docs/brand/`.
+Edit the SVG sources, then run `packaging/icons.sh` on any OS. It needs `resvg`; the `.ico` and
+`.icns` are packed by `cargo xtask ico` / `cargo xtask icns`. Never edit the renders by hand.

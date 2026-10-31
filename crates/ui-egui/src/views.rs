@@ -1,13 +1,13 @@
 //! The header, toolbar, footer, the grid of cards and the table, laid out like the apps page on
 //! getartcraft.com: hairline cells, mono labels and square controls.
 
-use artcraft_launcher_core::catalog::AppKind;
-use artcraft_launcher_core::details::AppDetails;
-use artcraft_launcher_core::platform::pick_asset;
-use artcraft_launcher_core::protocol::{Command, JobPhase};
-use artcraft_launcher_core::status::AppStatus;
-use artcraft_launcher_core::time;
 use egui::{Color32, CornerRadius, FontId, Rect, RichText, Sense, Stroke, Ui, vec2};
+use guildhall_core::catalog::AppKind;
+use guildhall_core::details::AppDetails;
+use guildhall_core::platform::pick_asset;
+use guildhall_core::protocol::{Command, JobPhase};
+use guildhall_core::status::AppStatus;
+use guildhall_core::time;
 
 use crate::app::{Dialog, LauncherUi, TitleBar};
 use crate::i18n::{current, fmt, t, tn, tr_ctx};
@@ -18,7 +18,7 @@ use crate::widgets::{self, Kind};
 
 /// The byline that says who makes an app: "by ArtCraft" or "by <publisher>". Official apps take
 /// the accent colour, community apps the muted one.
-fn kind_badge(ui: &mut Ui, app: &artcraft_launcher_core::CraftApp, t: &Tokens) {
+fn kind_badge(ui: &mut Ui, app: &guildhall_core::CraftApp, t: &Tokens) {
     let text = fmt(tl!("by {name}"), &[("name", app.publisher)]);
     let color = match app.kind {
         AppKind::Official => t.accent_ink,
@@ -92,10 +92,15 @@ impl LauncherUi {
             if bar == TitleBar::MacOs {
                 ui.add_space(TRAFFIC_LIGHTS_W);
             }
-            // The ArtCraft wordmark exactly as supplied, in its own cell.
-            let logo = vec2(14.0 * crate::icons::ARTCRAFT_LOGO_ASPECT, 14.0);
-            let (cell, _) = ui.allocate_exact_size(vec2(logo.x + 40.0, h), Sense::hover());
-            egui::Image::new(crate::icons::artcraft_logo(t.dark)).alt_text(tl!("ArtCraft")).paint_at(ui, Rect::from_center_size(cell.center(), logo));
+            // Guildhall's mark and name, in their own cell.
+            ui.add_space(20.0);
+            let (mark, _) = ui.allocate_exact_size(vec2(18.0, h), Sense::hover());
+            egui::Image::new(crate::icons::guildhall_mark())
+                .alt_text("Guildhall")
+                .paint_at(ui, Rect::from_center_size(mark.center(), vec2(18.0, 18.0)));
+            ui.add_space(8.0);
+            ui.add(egui::Label::new(widgets::heading("Guildhall", 17.0, t.ink_strong)).selectable(false));
+            ui.add_space(20.0);
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if bar == TitleBar::Custom {
                     widgets::window_buttons(ui, h);
@@ -134,9 +139,9 @@ impl LauncherUi {
         }
     }
 
-    /// A banner over the toolbar when a newer ArtCraft Launcher release is known: either the
+    /// A banner over the toolbar when a newer Guildhall release is known: either the
     /// update-in-place controls, or a plain link when this build can't update itself.
-    fn launcher_update_banner(&mut self, ui: &mut Ui, t: &Tokens, r: &artcraft_launcher_core::Release) {
+    fn launcher_update_banner(&mut self, ui: &mut Ui, t: &Tokens, r: &guildhall_core::Release) {
         egui::Frame::new()
             .fill(tint(t.accent, if t.dark { 0.10 } else { 0.07 }))
             .stroke(Stroke::new(1.0, tint(t.accent, 0.6)))
@@ -146,7 +151,7 @@ impl LauncherUi {
                     widgets::tag(ui, tl!("Update"), t.accent, Color32::WHITE);
                     ui.add_space(4.0);
                     ui.label(
-                        RichText::new(fmt(tl!("ArtCraft Launcher {version} is available."), &[("version", &r.version_label())]))
+                        RichText::new(fmt(tl!("Guildhall {version} is available."), &[("version", &r.version_label())]))
                             .family(theme::medium())
                             .color(t.ink_strong),
                     );
@@ -157,7 +162,7 @@ impl LauncherUi {
 
     /// The banner's right side: the download's progress and cancel while it runs, otherwise the
     /// update (or download) buttons plus the release link.
-    fn banner_actions(&mut self, ui: &mut Ui, t: &Tokens, r: &artcraft_launcher_core::Release) {
+    fn banner_actions(&mut self, ui: &mut Ui, t: &Tokens, r: &guildhall_core::Release) {
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             if let Some(phase) = self.launcher_job {
                 let (fraction, caption) = match phase {
@@ -176,7 +181,7 @@ impl LauncherUi {
                         .on_hover_text(tl!("Stop waiting; the update can be started again later"))
                         .clicked()
                 {
-                    self.act_command(Command::Cancel { app: artcraft_launcher_core::catalog::LAUNCHER_ID.to_string() });
+                    self.act_command(Command::Cancel { app: guildhall_core::catalog::LAUNCHER_ID.to_string() });
                 }
                 widgets::progress(ui, fraction, &caption, t.accent, 220.0);
                 return;
@@ -310,7 +315,7 @@ impl LauncherUi {
     /// News from ArtCraft's release feed (and app renames), until the user dismisses each.
     fn announcements(&mut self, ui: &mut Ui) {
         let t = Tokens::get(ui.ctx());
-        let shown: Vec<artcraft_launcher_core::feed::Notice> =
+        let shown: Vec<guildhall_core::feed::Notice> =
             self.announcements.iter().filter(|n| !self.settings.dismissed_notices.contains(&n.id)).take(3).cloned().collect();
         for notice in shown {
             egui::Frame::new().fill(t.sunken).stroke(t.hairline()).inner_margin(egui::Margin::symmetric(14, 10)).show(ui, |ui| {
@@ -359,26 +364,13 @@ impl LauncherUi {
             let short = fmt(tl!("GitHub limit hit; back in {min} min"), &[("min", &min)]);
             (format!("· {full}"), format!("· {short}"))
         });
-        use artcraft_launcher_core::catalog::{GITHUB_URL, SOCIAL, WEBSITE_URL};
-        // Every link is an icon, reading Website, GitHub, Discord, then the social accounts.
-        let named =
-            |name: &'static str, label: &str, url: &'static str| widgets::IconLink { name, label: label.to_string(), tip: label.to_string(), url };
-        let mut links = vec![
-            named("Website", tl!("Website"), WEBSITE_URL),
-            named("GitHub", tl!("GitHub"), GITHUB_URL),
-            widgets::IconLink {
-                name: "Discord",
-                label: tl!("Discord").to_string(),
-                tip: tl!("Join the ArtCraft community on Discord").to_string(),
-                url: self.discord_url,
-            },
-        ];
-        links.extend(SOCIAL.iter().map(|(name, url)| widgets::IconLink {
-            name,
-            label: (*name).to_string(),
-            tip: fmt(tl!("ArtCraft on {name}"), &[("name", name)]),
-            url,
-        }));
+        // One link, an icon: Guildhall on GitHub.
+        let links = [widgets::IconLink {
+            name: "GitHub",
+            label: tl!("GitHub").to_string(),
+            tip: tl!("GitHub").to_string(),
+            url: guildhall_core::catalog::GITHUB_URL,
+        }];
         let icon = 13.0;
         let spacing = ui.spacing().item_spacing.x;
         // The icons on the right keep their size; the status on the left gets what is left and
@@ -829,8 +821,8 @@ impl LauncherUi {
             };
         }
         // Once the pinned version is the installed one, the normal statuses (Open) take over again.
-        if let Some(artcraft_launcher_core::protocol::VersionTrack::Pinned(tag)) = self.settings.versions.get(entry.app.id)
-            && entry.installed.as_ref().and_then(|i| i.version.as_ref()) != artcraft_launcher_core::version::parse(tag).as_ref()
+        if let Some(guildhall_core::protocol::VersionTrack::Pinned(tag)) = self.settings.versions.get(entry.app.id)
+            && entry.installed.as_ref().and_then(|i| i.version.as_ref()) != guildhall_core::version::parse(tag).as_ref()
         {
             let checked = entry.release().is_some_and(|r| &r.tag == tag)
                 && !matches!(status, AppStatus::Checking | AppStatus::NoRelease | AppStatus::Unavailable);
@@ -1169,14 +1161,14 @@ pub(crate) fn version_line(e: &AppEntry, status: &AppStatus) -> String {
 /// The launcher's own download for this platform. `flatpak` is whether this copy runs as a
 /// Flatpak; such a copy's download stays the `.flatpak` bundle — offering it an AppImage (or a
 /// `.deb`) would point at replacing the sandboxed install with a different one.
-pub(crate) fn launcher_download(r: &artcraft_launcher_core::Release, p: artcraft_launcher_core::Platform, flatpak: bool) -> Option<String> {
-    use artcraft_launcher_core::PackageKind;
+pub(crate) fn launcher_download(r: &guildhall_core::Release, p: guildhall_core::Platform, flatpak: bool) -> Option<String> {
+    use guildhall_core::PackageKind;
     let kinds: &[PackageKind] = match p.os {
-        artcraft_launcher_core::Os::Linux if flatpak => &[PackageKind::Flatpak],
-        artcraft_launcher_core::Os::Linux => &[PackageKind::AppImage, PackageKind::Deb],
+        guildhall_core::Os::Linux if flatpak => &[PackageKind::Flatpak],
+        guildhall_core::Os::Linux => &[PackageKind::AppImage, PackageKind::Deb],
         _ => p.default_kinds(),
     };
-    pick_asset(r, &[artcraft_launcher_core::catalog::LAUNCHER_ID], p, kinds).map(|(a, _)| a.url.clone())
+    pick_asset(r, &[guildhall_core::catalog::LAUNCHER_ID], p, kinds).map(|(a, _)| a.url.clone())
 }
 
 /// A column of single-line texts, one per font and `gap` apart, centred across the row it is in.
@@ -1199,17 +1191,17 @@ fn lines_height(ui: &Ui, fonts: &[&FontId], gap: f32) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use artcraft_launcher_core::catalog::LAUNCHER_ID;
-    use artcraft_launcher_core::{Arch, Asset, Platform, Release};
+    use guildhall_core::catalog::LAUNCHER_ID;
+    use guildhall_core::{Arch, Asset, Platform, Release};
 
     fn release() -> Release {
         let asset = |name: &str| Asset { name: name.into(), size: 0, url: format!("https://dl.example/{name}"), sha256: None };
         Release {
             tag: "v0.4.1".into(),
             version: None,
-            name: "ArtCraft Launcher v0.4.1".into(),
+            name: "Guildhall v0.4.1".into(),
             published_at: None,
-            html_url: "https://github.com/storytold/craft-launcher/releases/tag/v0.4.1".into(),
+            html_url: "https://github.com/Mansi1/guildhall/releases/tag/v0.4.1".into(),
             notes: String::new(),
             prerelease: false,
             assets: vec![
@@ -1221,7 +1213,7 @@ mod tests {
     }
 
     fn platform() -> Platform {
-        Platform { os: artcraft_launcher_core::Os::Linux, arch: Arch::X64 }
+        Platform { os: guildhall_core::Os::Linux, arch: Arch::X64 }
     }
 
     #[test]

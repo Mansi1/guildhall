@@ -1,18 +1,18 @@
 //! The Hungarian UI, in its own test binary: the UI language is process-wide, so it can't share one
-//! with the English UI tests. `ARTCRAFT_LAUNCHER_SNAPSHOTS=<dir>` also saves screenshots (run with
+//! with the English UI tests. `GUILDHALL_SNAPSHOTS=<dir>` also saves screenshots (run with
 //! `-- --test-threads=1`, see `ui.rs`).
 
 use std::cell::Cell;
 use std::rc::Rc;
 
-use artcraft_launcher_core::protocol::{Backend, Capabilities, Command, Event, JobPhase, LatestRelease, Origin, Source};
-use artcraft_launcher_core::release::{Asset, Release};
-use artcraft_launcher_core::status::InstallSource;
-use artcraft_launcher_core::{Arch, Installed, Os, Platform, SUITE, version};
-use artcraft_launcher_ui_egui::settings::ViewMode;
-use artcraft_launcher_ui_egui::{Host, LauncherUi, Settings};
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
+use guildhall_core::protocol::{Backend, Capabilities, Command, Event, JobPhase, LatestRelease, Origin, Source};
+use guildhall_core::release::{Asset, Release};
+use guildhall_core::status::InstallSource;
+use guildhall_core::{Arch, Installed, Os, Platform, SUITE, version};
+use guildhall_ui_egui::settings::ViewMode;
+use guildhall_ui_egui::{Host, LauncherUi, Settings};
 
 const NOW: i64 = 1_791_500_000;
 
@@ -92,10 +92,9 @@ fn harness(view: ViewMode) -> Harness<'static, Option<LauncherUi>> {
 }
 
 fn harness_on(view: ViewMode, os: Os) -> Harness<'static, Option<LauncherUi>> {
-    artcraft_launcher_ui_egui::i18n::set_test_lang(artcraft_launcher_ui_egui::i18n::Lang::EN);
+    guildhall_ui_egui::i18n::set_test_lang(guildhall_ui_egui::i18n::Lang::EN);
     let mut backend = Some(Fake { events: events(), clock: Rc::new(Cell::new(NOW)), os });
-    let settings =
-        Settings { view, notify: false, language: "hu".into(), theme: artcraft_launcher_ui_egui::theme::ThemeChoice::Dark, ..Settings::default() };
+    let settings = Settings { view, notify: false, language: "hu".into(), theme: guildhall_ui_egui::theme::ThemeChoice::Dark, ..Settings::default() };
     Harness::builder().with_size(egui::vec2(1180.0, 900.0)).with_theme(egui::Theme::Dark).build_ui_state(
         move |ui, state: &mut Option<LauncherUi>| {
             if state.is_none()
@@ -113,7 +112,7 @@ fn harness_on(view: ViewMode, os: Os) -> Harness<'static, Option<LauncherUi>> {
 }
 
 fn snapshot(h: &mut Harness<'_, Option<LauncherUi>>, name: &str) {
-    let Some(dir) = std::env::var_os("ARTCRAFT_LAUNCHER_SNAPSHOTS") else { return };
+    let Some(dir) = std::env::var_os("GUILDHALL_SNAPSHOTS") else { return };
     let img = h.render().unwrap();
     img.save(std::path::Path::new(&dir).join(format!("{name}.png"))).unwrap();
 }
@@ -152,7 +151,7 @@ fn check_settings_layout() {
         h.run_steps(8);
         let screen = egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(width, height));
         let done = h.get_by_label("Kész").rect();
-        let quit = h.get_by_label("Kilépés az ArtCraft Launcherből").rect();
+        let quit = h.get_by_label("Kilépés a Guildhallből").rect();
         assert!(screen.contains_rect(done), "{width}x{height}: Done is clipped: {done:?}");
         assert!(screen.contains_rect(quit), "{width}x{height}: Quit is clipped: {quit:?}");
         assert!(!done.intersects(quit));
@@ -164,28 +163,20 @@ fn check_settings_layout() {
         h.run_steps(8);
         let theme = h.get_by_label("Rendszerbeállítás szerint").rect();
         assert!(theme.bottom() < done.top(), "appearance controls must scroll above the fixed actions");
-        h.get_by_label("Csatlakozás a Discordhoz").scroll_to_me();
+        let notice = "A Guildhall nem hivatalos: nem az ArtCraft készíti, ajánlja vagy támogatja. Segítséget a GitHub-oldalán kérhetsz.";
+        h.get_by_label(notice).scroll_to_me();
         h.run_steps(8);
-        // The footer has the same services, and the cards behind the modal have Webhely and GitHub
-        // links as one 14px line of text; keep only the settings body's buttons (34px) and icons (24px).
-        let discord = h.get_by_label("Csatlakozás a Discordhoz").rect();
-        assert!(screen.contains_rect(discord), "community links must be reachable by scrolling");
-        let mut links = vec![discord];
-        for label in ["Webhely", "GitHub", "X", "Instagram", "LinkedIn", "YouTube", "TikTok"] {
-            let candidates: Vec<_> = h
-                .query_all_by_label(label)
-                .map(|n| n.rect())
-                .filter(|r| r.top() >= discord.top() - 1.0 && r.bottom() < done.top() && r.height() > 20.0)
-                .collect();
-            assert_eq!(candidates.len(), 1, "{width}x{height}: settings link {label}: {candidates:?}");
-            links.extend(candidates);
-        }
-        for (i, r) in links.iter().enumerate() {
-            assert!(screen.contains_rect(*r), "{width}x{height}: link is clipped: {r:?}");
-            for other in links.iter().skip(i + 1) {
-                assert!(!r.intersects(*other), "{width}x{height}: links overlap: {r:?}, {other:?}");
-            }
-        }
+        let notice = h.get_by_label(notice).rect();
+        assert!(screen.contains_rect(notice), "{width}x{height}: the unofficial notice must be reachable by scrolling");
+        // The community panel's one button (34px); the footer's GitHub icon (24px) and the cards'
+        // 14px text links sit behind the modal.
+        let github: Vec<_> = h
+            .query_all_by_label("GitHub")
+            .map(|n| n.rect())
+            .filter(|r| r.top() >= notice.top() && r.bottom() < done.top() && r.height() > 30.0)
+            .collect();
+        assert_eq!(github.len(), 1, "{width}x{height}: settings GitHub button: {github:?}");
+        assert!(screen.contains_rect(github[0]), "{width}x{height}: GitHub button is clipped: {:?}", github[0]);
         snapshot(&mut h, &format!("settings-hu-{width}x{height}-bottom"));
         h.get_by_label("Nyelv").scroll_to_me();
         h.run_steps(8);

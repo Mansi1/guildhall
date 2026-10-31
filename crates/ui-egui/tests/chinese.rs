@@ -1,19 +1,19 @@
 //! The Simplified Chinese UI, in its own test binary: the UI language is process-wide, so it can't
 //! share one with the English UI tests. Chinese is drawn with the system's Chinese font; where
 //! there is none (CI, minimal Linux installs), the UI must stay in English and say why.
-//! `ARTCRAFT_LAUNCHER_SNAPSHOTS=<dir>` also saves screenshots (run with `-- --test-threads=1`).
+//! `GUILDHALL_SNAPSHOTS=<dir>` also saves screenshots (run with `-- --test-threads=1`).
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use artcraft_launcher_core::protocol::{Backend, Capabilities, Command, Event, JobPhase, LatestRelease, Origin, PausedDownload, Source};
-use artcraft_launcher_core::release::{Asset, Release};
-use artcraft_launcher_core::status::InstallSource;
-use artcraft_launcher_core::{Arch, Installed, Os, Platform, SUITE, version};
-use artcraft_launcher_ui_egui::settings::ViewMode;
-use artcraft_launcher_ui_egui::{Host, LauncherUi, Settings};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT, Queryable};
+use guildhall_core::protocol::{Backend, Capabilities, Command, Event, JobPhase, LatestRelease, Origin, PausedDownload, Source};
+use guildhall_core::release::{Asset, Release};
+use guildhall_core::status::InstallSource;
+use guildhall_core::{Arch, Installed, Os, Platform, SUITE, version};
+use guildhall_ui_egui::settings::ViewMode;
+use guildhall_ui_egui::{Host, LauncherUi, Settings};
 
 const NOW: i64 = 1_791_500_000;
 
@@ -111,7 +111,7 @@ fn harness_language(
     manage: bool,
     language: &str,
 ) -> (Harness<'static, Option<LauncherUi>>, Rc<RefCell<Vec<Command>>>) {
-    artcraft_launcher_ui_egui::i18n::set_test_lang(artcraft_launcher_ui_egui::i18n::Lang::EN);
+    guildhall_ui_egui::i18n::set_test_lang(guildhall_ui_egui::i18n::Lang::EN);
     let sent = Rc::new(RefCell::new(Vec::new()));
     let sent2 = sent.clone();
     let mut backend = Some(Fake { events: events(), sent: sent2, manage, clock: Rc::new(Cell::new(NOW)) });
@@ -123,9 +123,9 @@ fn harness_language(
             {
                 let mut s = settings.clone();
                 s.theme = if theme == egui::Theme::Dark {
-                    artcraft_launcher_ui_egui::theme::ThemeChoice::Dark
+                    guildhall_ui_egui::theme::ThemeChoice::Dark
                 } else {
-                    artcraft_launcher_ui_egui::theme::ThemeChoice::Light
+                    guildhall_ui_egui::theme::ThemeChoice::Light
                 };
                 *state = Some(LauncherUi::new(ui.ctx(), Box::new(b), s));
             }
@@ -140,7 +140,7 @@ fn harness_language(
 }
 
 fn snapshot(h: &mut Harness<'_, Option<LauncherUi>>, name: &str) {
-    let Some(dir) = std::env::var_os("ARTCRAFT_LAUNCHER_SNAPSHOTS") else { return };
+    let Some(dir) = std::env::var_os("GUILDHALL_SNAPSHOTS") else { return };
     let img = h.render().unwrap();
     img.save(std::path::Path::new(&dir).join(format!("{name}.png"))).unwrap();
 }
@@ -155,13 +155,13 @@ fn simplified_chinese_switches_persists_and_keeps_install_actions() {
     h.get_by_value("English").click();
     h.run_steps(2);
     // Opening Settings doesn't load the (large) Chinese font: the picker names it in English.
-    assert!(!artcraft_launcher_ui_egui::theme::cjk_font_loaded(artcraft_launcher_ui_egui::i18n::Lang::ZH_CN));
+    assert!(!guildhall_ui_egui::theme::cjk_font_loaded(guildhall_ui_egui::i18n::Lang::ZH_CN));
     // The native-name sort puts Chinese last, below the popup's scroll viewport. Scroll the
     // actual popup with a wheel over its visible first row before the physical pointer click.
     let before_scroll = h.get_by_label("Simplified Chinese").rect();
     let first_row = h.get_by_label("Auto").rect();
     let popup_bottom = first_row.top() + h.ctx.global_style().spacing.combo_height;
-    if std::env::var_os("ARTCRAFT_LAUNCHER_CHINESE_SCROLL_DIAGNOSTICS").is_some() {
+    if std::env::var_os("GUILDHALL_CHINESE_SCROLL_DIAGNOSTICS").is_some() {
         let node = h.get_by_label("Simplified Chinese");
         eprintln!("ScrollIntoView target {:?}: {node:?}", node.accesskit_node().locate());
         node.scroll_to_me();
@@ -189,7 +189,7 @@ fn simplified_chinese_switches_persists_and_keeps_install_actions() {
     assert_eq!(h.state().as_ref().unwrap().settings.language, "en", "scrolling must not select a language");
     h.get_by_label("Simplified Chinese").click();
     h.run_steps(3);
-    if !artcraft_launcher_ui_egui::theme::cjk_font_available(artcraft_launcher_ui_egui::i18n::Lang::ZH_CN) {
+    if !guildhall_ui_egui::theme::cjk_font_available(guildhall_ui_egui::i18n::Lang::ZH_CN) {
         // No Chinese font: choosing it keeps the UI in English, and Settings says why.
         assert_eq!(h.state().as_ref().unwrap().settings.language, "zh-CN");
         h.get_by_label_contains("No font for this language was found");

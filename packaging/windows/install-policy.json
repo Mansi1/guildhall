@@ -1,14 +1,14 @@
 {
-  "id": "artcraft-launcher",
-  "name": "ArtCraft Launcher",
+  "id": "guildhall",
+  "name": "Guildhall",
   "mode": "perUser",
-  "upgradeCode": "1AC08DBF-D4CF-4BA4-A81E-CAA5C1004974",
+  "upgradeCode": "A87A39D1-D65C-459B-826F-0C171C73398C",
   "sources": [
-    "artcraft-launcher.wxs"
+    "guildhall.wxs"
   ],
-  "icon": "assets/app-icon/artcraft-launcher.ico",
+  "icon": "assets/app-icon/guildhall.ico",
   "localization": [
-    "artcraft-launcher.en-us.wxl"
+    "guildhall.en-us.wxl"
   ],
   "extensions": [
     "UI",
@@ -16,36 +16,36 @@
   ],
   "payloads": [
     "NOTICE",
-    "artcraft-launcher.exe"
+    "guildhall.exe"
   ],
   "registry": [
     [
       "1",
-      "Software\\Learning Machines LLC\\ArtCraft Launcher",
+      "Software\\Guildhall contributors\\Guildhall",
       "InstallDir",
       "[INSTALLFOLDER]"
     ],
     [
       "1",
-      "Software\\Learning Machines LLC\\ArtCraft Launcher",
+      "Software\\Guildhall contributors\\Guildhall",
       "DesktopShortcutChoice",
       "[DESKTOPSHORTCUTCHOICE]"
     ],
     [
       "1",
-      "Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\artcraft-launcher.exe",
+      "Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\guildhall.exe",
       "",
-      "[#ArtCraftLauncherExe]"
+      "[#GuildhallExe]"
     ],
     [
       "1",
-      "Software\\Learning Machines LLC\\ArtCraft Launcher",
+      "Software\\Guildhall contributors\\Guildhall",
       "StartMenuShortcut",
       "#1"
     ],
     [
       "1",
-      "Software\\Learning Machines LLC\\ArtCraft Launcher",
+      "Software\\Guildhall contributors\\Guildhall",
       "DesktopShortcut",
       "#1"
     ]

@@ -1,14 +1,15 @@
-ArtCraft Launcher
-Copyright (c) 2026 ArtCraft Team and the ArtCraft Launcher contributors.
+Guildhall
+Copyright (c) 2026 the Guildhall contributors.
+Based on ArtCraft Launcher, Copyright (c) 2026 ArtCraft Team and the ArtCraft Launcher contributors
+(https://github.com/storytold/craft-launcher).
 Licensed under the MIT License or the Apache License, Version 2.0, at your option
 (LICENSE-MIT, LICENSE-APACHE).
 
-The ArtCraft name, wordmark, logo and "A" mark (docs/brand/) are trademarks of the ArtCraft Team.
-They are NOT open source and are NOT covered by the MIT or Apache-2.0 license above. This includes
-everywhere ArtCraft Launcher shows them: the app icon (assets/app-icon/, the blue "A" mark), the
-ArtCraft logo in the window header and the "A" mark used as the tray / menu-bar icon
-(docs/brand/artcraft-mark-64.png, artcraft-mark-black-44.png).
-Their terms are in docs/brand/LICENSE-brand.txt; forks and modified versions must remove them.
+Guildhall is unofficial: it is not made, endorsed or supported by the ArtCraft Team. It contains
+none of the ArtCraft Marks (the ArtCraft name as a product name, wordmark, logo or "A" mark), which
+are trademarks of the ArtCraft Team and were removed from this fork as their terms require.
+"ArtCraft" appears here only in plain text, to say what this work is based on and who makes the
+Craft apps it installs.
 
 Third-party material
 

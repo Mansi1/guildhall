@@ -23,10 +23,10 @@
 
 use std::path::{Path, PathBuf};
 
-use artcraft_launcher_core::Arch;
-use artcraft_launcher_core::protocol::{CANCELLED, INSTALL_CANCELLED, InstallLocations, JobPhase};
-use artcraft_launcher_core::release::{self, Asset, Release};
-use artcraft_launcher_core::{CraftApp, InstallSource, Installed, PackageKind, version};
+use guildhall_core::Arch;
+use guildhall_core::protocol::{CANCELLED, INSTALL_CANCELLED, InstallLocations, JobPhase};
+use guildhall_core::release::{self, Asset, Release};
+use guildhall_core::{CraftApp, InstallSource, Installed, PackageKind, version};
 
 use crate::http::{Http, Stop, Transfer};
 use crate::manifest::Record;
@@ -169,7 +169,7 @@ pub fn install_at(
         // No team to check the signature against: refuse rather than install it unchecked.
         #[cfg(target_os = "macos")]
         PackageKind::Dmg if app.mac_team.is_none() => {
-            Err("ArtCraft Launcher has no macOS signing team recorded for this app, so it wasn't installed here".into())
+            Err("Guildhall has no macOS signing team recorded for this app, so it wasn't installed here".into())
         }
         #[cfg(target_os = "macos")]
         PackageKind::Dmg => {
@@ -262,7 +262,7 @@ pub(crate) fn bind_artifact_version(app: &CraftApp, release: &Release, asset: &A
     // The version in the asset filename (`<stem>-<version>-<os>-<arch>.<ext>`), when it carries one.
     let stems: Vec<&str> = app.stems().collect();
     if let Some(release_version) = release_version
-        && let Some(parsed) = artcraft_launcher_core::platform::parse_asset_name(&asset.name, &stems)
+        && let Some(parsed) = guildhall_core::platform::parse_asset_name(&asset.name, &stems)
         && version::parse(&parsed.version).as_ref() != Some(release_version)
     {
         return Err(mismatch());
@@ -422,7 +422,7 @@ fn selected_folder(folder: &str, writable: bool) -> Result<PathBuf, String> {
 /// Creates and removes a scratch file in `dir`, the way a real write would be refused.
 fn write_probe(dir: &Path) -> std::io::Result<()> {
     let probe = dir.join(format!(
-        ".artcraft-launcher-write-test-{}-{}",
+        ".guildhall-write-test-{}-{}",
         std::process::id(),
         std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_nanos())
     ));
@@ -840,10 +840,7 @@ fn prepare_home(home: &Path) {
 /// the user's.
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 fn staging_dir(dir: &Path) -> Result<tempfile::TempDir, String> {
-    tempfile::Builder::new()
-        .prefix(".artcraft-launcher-")
-        .tempdir_in(dir)
-        .map_err(|e| format!("couldn't create a staging folder in {} ({e})", dir.display()))
+    tempfile::Builder::new().prefix(".guildhall-").tempdir_in(dir).map_err(|e| format!("couldn't create a staging folder in {} ({e})", dir.display()))
 }
 
 /// Moves `staged` into place at `dest`, keeping the old copy until the new one is there.
@@ -858,7 +855,7 @@ fn swap_into_place_via(staged: &Path, dest: &Path, rename: impl Fn(&Path, &Path)
     let backup = if dest.exists() {
         let parent = dest.parent().ok_or("the installed app has no parent folder")?;
         let backup = tempfile::Builder::new()
-            .prefix(".artcraft-launcher-backup-")
+            .prefix(".guildhall-backup-")
             .tempdir_in(parent)
             .map_err(|e| format!("couldn't create a backup folder in {} ({e})", parent.display()))?;
         rename(dest, &backup.path().join("old")).map_err(|e| format!("couldn't move the old copy aside ({e})"))?;
@@ -987,7 +984,7 @@ fn turn<'a>(phase: &'a mut dyn FnMut(JobPhase), working: JobPhase) -> impl FnMut
 /// For [`INSTALLER`]: whether the user cancelled the job while it waits.
 #[cfg(any(target_os = "linux", windows))]
 fn cancelled(stop: &Stop) -> impl Fn() -> bool + '_ {
-    || stop.check().is_err_and(|e| e == artcraft_launcher_core::protocol::CANCELLED)
+    || stop.check().is_err_and(|e| e == guildhall_core::protocol::CANCELLED)
 }
 
 #[cfg(target_os = "linux")]
@@ -995,8 +992,8 @@ pub(crate) mod linux {
     use std::ffi::{OsStr, OsString};
     use std::os::unix::fs::PermissionsExt;
 
-    use artcraft_launcher_core::distro;
-    use artcraft_launcher_core::protocol::CANCELLED;
+    use guildhall_core::distro;
+    use guildhall_core::protocol::CANCELLED;
 
     use super::{
         CraftApp, INSTALLER, InstallSource, Installed, JobPhase, PackageKind, Path, PathBuf, Paths, Record, SHARED_CALL, SYSTEM_BIN_DIRS, Stop,
@@ -1253,7 +1250,7 @@ pub(crate) mod linux {
         let dest = dir.join(name);
         let ours = previous.is_some_and(|r| r.kind == PackageKind::AppImage && r.path == dest);
         if std::fs::symlink_metadata(&dest).is_ok_and(|m| m.is_dir() || !(replace || ours && m.is_file())) {
-            return Err(format!("{} already exists and wasn't installed by ArtCraft Launcher", dest.display()));
+            return Err(format!("{} already exists and wasn't installed by Guildhall", dest.display()));
         }
         let staging = super::staging_dir(&dir)?;
         let partial = staging.path().join(name);
@@ -1372,7 +1369,7 @@ pub(crate) mod linux {
 
     /// The app's 128 px icon, as bundled in `assets/app-icons`.
     fn icon_png(app: &CraftApp) -> Option<&'static [u8]> {
-        artcraft_launcher_core::catalog::app_icon_png(app.id)
+        guildhall_core::catalog::app_icon_png(app.id)
     }
 
     fn desktop_path(data: &Path, app: &CraftApp) -> PathBuf {
@@ -1471,9 +1468,9 @@ mod macos_verify;
 pub mod macos {
     use std::time::Duration;
 
-    use artcraft_launcher_core::version::Version;
+    use guildhall_core::version::Version;
 
-    use super::{CraftApp, InstallSource, Installed, Path, PathBuf, Paths, Release, process, staging_dir, swap_into_place};
+    use super::{CraftApp, InstallSource, Installed, Path, PathBuf, Paths, Release, process, swap_into_place};
 
     const SYSTEM_APPLICATIONS: &str = "/Applications";
 
@@ -1599,7 +1596,7 @@ pub mod macos {
             && std::fs::symlink_metadata(&dest).is_ok()
             && (std::fs::symlink_metadata(&dest).is_ok_and(|m| m.file_type().is_symlink()) || crate::detect::macos::read_bundle(app, &dest).is_none())
         {
-            return Err(format!("{} already exists and wasn't installed by ArtCraft Launcher", dest.display()));
+            return Err(format!("{} already exists and wasn't installed by Guildhall", dest.display()));
         }
         let staging = super::staging_dir(&dir)?;
         let staged = staging.path().join(&bundle);
@@ -1964,7 +1961,7 @@ pub(crate) fn msi_path(msi: &Path) -> Result<PathBuf, String> {
 
 #[cfg(windows)]
 pub mod windows {
-    use artcraft_launcher_core::protocol::CANCELLED;
+    use guildhall_core::protocol::CANCELLED;
 
     use super::{
         CraftApp, INSTALLER, JobPhase, MsiScope, Path, PathBuf, Stop, cancelled, explain, msi_batch, msi_command, msi_downgrade, msi_folder_argument,
@@ -2203,7 +2200,7 @@ mod tests {
         let system = tempfile::tempdir().unwrap();
         let victim = tempfile::NamedTempFile::new().unwrap();
         std::fs::write(victim.path(), b"keep me").unwrap();
-        std::os::unix::fs::symlink(victim.path(), system.path().join(".artcraft-launcher-write-test")).unwrap();
+        std::os::unix::fs::symlink(victim.path(), system.path().join(".guildhall-write-test")).unwrap();
         assert_eq!(mac_applications_dir(system.path(), None), Some(system.path().to_path_buf()));
         assert_eq!(std::fs::read(victim.path()).unwrap(), b"keep me");
     }
@@ -3144,7 +3141,7 @@ mod tests {
     #[test]
     fn updates_keep_the_installed_format() {
         let inst = |source| Installed { version: None, source, location: String::new(), package: None };
-        let app = artcraft_launcher_core::CraftApp::by_id("photocraft").unwrap();
+        let app = guildhall_core::CraftApp::by_id("photocraft").unwrap();
         let available = available_kinds();
         if let Some(first) = available.first() {
             assert_eq!(choose_kinds(app, None, None, &[]).first(), Some(first));
@@ -3161,7 +3158,7 @@ mod tests {
     #[test]
     fn only_the_release_arch_package_is_updated_by_the_launcher() {
         let pacman = |name: &str| Installed { version: None, source: InstallSource::Pacman, location: String::new(), package: Some(name.into()) };
-        let app = artcraft_launcher_core::CraftApp::by_id("wordcraft").unwrap();
+        let app = guildhall_core::CraftApp::by_id("wordcraft").unwrap();
         assert!(is_release_arch_package(app, &pacman("ai.storyteller.wordcraft")));
         for aur in ["wordcraft", "wordcraft-bin", "wordcraft-git"] {
             assert!(!is_release_arch_package(app, &pacman(aur)), "{aur}");
@@ -3172,7 +3169,7 @@ mod tests {
 
     #[test]
     fn arch_packages_from_a_repository_are_updated_with_the_system() {
-        let app = artcraft_launcher_core::CraftApp::by_id("wordcraft").unwrap();
+        let app = guildhall_core::CraftApp::by_id("wordcraft").unwrap();
         let hint = pacman_update_hint(app, "wordcraft-bin", Some("omarchy"));
         assert!(hint.starts_with("WordCraft was installed from the omarchy repository or the AUR (wordcraft-bin)."));
         assert!(hint.ends_with("or sudo pacman -Syu"));
@@ -3189,7 +3186,7 @@ mod tests {
     #[test]
     fn aur_packages_are_not_updated_as_arch_pkg() {
         let pacman = |name: &str| Installed { version: None, source: InstallSource::Pacman, location: String::new(), package: Some(name.into()) };
-        let app = artcraft_launcher_core::CraftApp::by_id("filmcraft").unwrap();
+        let app = guildhall_core::CraftApp::by_id("filmcraft").unwrap();
         let installed = pacman("filmcraft-bin");
         assert!(managed_elsewhere_with(app, &installed, false, |_| None).is_some());
         assert_eq!(choose_kinds_with(app, Some(&installed), None, &[], &[], false), Vec::<PackageKind>::new());
@@ -3198,11 +3195,11 @@ mod tests {
 
     #[test]
     fn a_macos_build_installs_only_when_its_team_is_known() {
-        let sc = artcraft_launcher_core::CraftApp::by_id("solidcraft").unwrap();
+        let sc = guildhall_core::CraftApp::by_id("solidcraft").unwrap();
         assert_eq!(choose_kinds_with(sc, None, None, &[], &[PackageKind::Dmg], false), [PackageKind::Dmg]);
-        let unsigned = artcraft_launcher_core::CraftApp { mac_team: None, ..*sc };
+        let unsigned = guildhall_core::CraftApp { mac_team: None, ..*sc };
         assert_eq!(choose_kinds_with(&unsigned, None, None, &[], &[PackageKind::Dmg], false), Vec::<PackageKind>::new());
-        let photo = artcraft_launcher_core::CraftApp::by_id("photocraft").unwrap();
+        let photo = guildhall_core::CraftApp::by_id("photocraft").unwrap();
         assert_eq!(choose_kinds_with(photo, None, None, &[], &[PackageKind::Dmg], false), [PackageKind::Dmg]);
     }
 
@@ -3211,7 +3208,7 @@ mod tests {
     fn only_an_apps_own_older_flatpak_id_is_retired() {
         use super::linux::former_flatpak;
         let flatpak = |id: &str| Installed { version: None, source: InstallSource::Flatpak, location: id.into(), package: Some(id.into()) };
-        let sc = artcraft_launcher_core::CraftApp::by_id("solidcraft").unwrap();
+        let sc = guildhall_core::CraftApp::by_id("solidcraft").unwrap();
         let old = flatpak("ai.storyteller.solvecraft");
         assert_eq!(former_flatpak(sc, Some(&old)), Some("ai.storyteller.solvecraft"));
         assert_eq!(former_flatpak(sc, Some(&flatpak("io.tangencylabs.solidcraft"))), None);
@@ -3224,7 +3221,7 @@ mod tests {
     #[test]
     fn release_arch_packages_are_updated_as_arch_pkg() {
         let pacman = |name: &str| Installed { version: None, source: InstallSource::Pacman, location: String::new(), package: Some(name.into()) };
-        let app = artcraft_launcher_core::CraftApp::by_id("filmcraft").unwrap();
+        let app = guildhall_core::CraftApp::by_id("filmcraft").unwrap();
         let installed = pacman("ai.storyteller.filmcraft");
         assert_eq!(managed_elsewhere_with(app, &installed, false, |_| None), None);
         assert_eq!(choose_kinds_with(app, Some(&installed), None, &[], &[], true), vec![PackageKind::ArchPkg]);
@@ -3233,7 +3230,7 @@ mod tests {
 
     #[test]
     fn unavailable_arch_package_not_selected_for_new_install() {
-        let app = artcraft_launcher_core::CraftApp::by_id("filmcraft").unwrap();
+        let app = guildhall_core::CraftApp::by_id("filmcraft").unwrap();
         assert_eq!(choose_kinds_with(app, None, None, &[PackageKind::ArchPkg], &[], true), Vec::<PackageKind>::new());
         assert_eq!(choose_kinds_with(app, None, None, &[PackageKind::ArchPkg], &[], false), Vec::<PackageKind>::new());
         assert_eq!(choose_kinds_with(app, None, None, &[PackageKind::ArchPkg], &[PackageKind::ArchPkg], false), vec![PackageKind::ArchPkg]);
@@ -3356,11 +3353,11 @@ mod tests {
 
     #[cfg(target_os = "macos")]
     mod macos_checks {
-        use artcraft_launcher_core::{SUITE, version};
+        use guildhall_core::{SUITE, version};
 
         use super::macos::{Expect, install_dmg, signed_by};
         use super::*;
-        use artcraft_launcher_core::catalog::ARTCRAFT_TEAM_ID as TEAM_ID;
+        use guildhall_core::catalog::ARTCRAFT_TEAM_ID as TEAM_ID;
 
         fn photocraft() -> &'static CraftApp {
             SUITE.iter().find(|a| a.id == "photocraft").unwrap()
@@ -3529,7 +3526,7 @@ mod tests {
         }
 
         /// A real release passes. Run with `CRAFT_APP=/path/to/PhotoCraft.app cargo test -p
-        /// artcraft-launcher-native -- --ignored a_real_craft_app`.
+        /// guildhall-native -- --ignored a_real_craft_app`.
         #[test]
         #[ignore = "needs a Craft App from a real release"]
         fn a_real_craft_app_carries_the_teams_signature() {

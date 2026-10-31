@@ -1,5 +1,5 @@
 //! Drives the launcher UI against a fake backend: what's shown for each status, and which
-//! commands the buttons send. `ARTCRAFT_LAUNCHER_SNAPSHOTS=<dir>` also saves screenshots; run that
+//! commands the buttons send. `GUILDHALL_SNAPSHOTS=<dir>` also saves screenshots; run that
 //! with `-- --test-threads=1`, as rendering on several threads at once can crash Vulkan loaders
 //! older than 1.4.350 (KhronosGroup/Vulkan-Loader#1863).
 
@@ -7,17 +7,17 @@ use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::sync::OnceLock;
 
-use artcraft_launcher_core::details::AppDetails;
-use artcraft_launcher_core::protocol::{
-    Backend, CANCELLED, Capabilities, Command, Event, INSTALL_CANCELLED, JobPhase, LatestRelease, Origin, PausedDownload, Source,
-};
-use artcraft_launcher_core::release::{Asset, Release};
-use artcraft_launcher_core::status::InstallSource;
-use artcraft_launcher_core::{Arch, Installed, Os, Platform, SUITE, version};
-use artcraft_launcher_ui_egui::settings::ViewMode;
-use artcraft_launcher_ui_egui::{Host, LauncherUi, Settings};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT, Queryable};
+use guildhall_core::details::AppDetails;
+use guildhall_core::protocol::{
+    Backend, CANCELLED, Capabilities, Command, Event, INSTALL_CANCELLED, JobPhase, LatestRelease, Origin, PausedDownload, Source,
+};
+use guildhall_core::release::{Asset, Release};
+use guildhall_core::status::InstallSource;
+use guildhall_core::{Arch, Installed, Os, Platform, SUITE, version};
+use guildhall_ui_egui::settings::ViewMode;
+use guildhall_ui_egui::{Host, LauncherUi, Settings};
 
 const NOW: i64 = 1_791_500_000;
 
@@ -121,11 +121,7 @@ impl Host for NoHost {}
 /// A harness that has the launcher's fonts, theme and image loaders before its first pass, and
 /// never paints a synthetic cursor into saved images.
 fn test_harness_builder<State>(theme: egui::Theme) -> egui_kittest::HarnessBuilder<State> {
-    let choice = if theme == egui::Theme::Dark {
-        artcraft_launcher_ui_egui::theme::ThemeChoice::Dark
-    } else {
-        artcraft_launcher_ui_egui::theme::ThemeChoice::Light
-    };
+    let choice = if theme == egui::Theme::Dark { guildhall_ui_egui::theme::ThemeChoice::Dark } else { guildhall_ui_egui::theme::ThemeChoice::Light };
     egui_kittest::HarnessBuilder::default()
         // 0.37 defaults: strict accessible names and a panic on a missing glyph. Neither is
         // relaxed here; fixed controls are painter-drawn and dynamic notes/feed text uses the
@@ -133,9 +129,9 @@ fn test_harness_builder<State>(theme: egui::Theme) -> egui_kittest::HarnessBuild
         .with_accessibility_check(true)
         .with_render_cursor(false)
         .with_context_setup(move |ctx| {
-            artcraft_launcher_ui_egui::theme::install_fonts(ctx, None);
+            guildhall_ui_egui::theme::install_fonts(ctx, None);
             egui_extras::install_image_loaders(ctx);
-            artcraft_launcher_ui_egui::theme::apply(ctx, choice);
+            guildhall_ui_egui::theme::apply(ctx, choice);
         })
 }
 
@@ -215,7 +211,7 @@ fn harness_with(
     manage: bool,
     scale: f32,
 ) -> (Harness<'static, Option<LauncherUi>>, Rc<RefCell<Vec<Command>>>) {
-    harness_full(events, view, theme, manage, scale, artcraft_launcher_ui_egui::TitleBar::Native, Rc::default(), None, None)
+    harness_full(events, view, theme, manage, scale, guildhall_ui_egui::TitleBar::Native, Rc::default(), None, None)
 }
 
 /// Like `harness_with`, with the details pictures answered as `pictures` says (changeable during the test).
@@ -227,7 +223,7 @@ fn harness_pictures(
     scale: f32,
     pictures: Rc<Cell<Pictures>>,
 ) -> (Harness<'static, Option<LauncherUi>>, Rc<RefCell<Vec<Command>>>) {
-    harness_full(events, view, theme, manage, scale, artcraft_launcher_ui_egui::TitleBar::Native, pictures, None, None)
+    harness_full(events, view, theme, manage, scale, guildhall_ui_egui::TitleBar::Native, pictures, None, None)
 }
 
 fn harness_with_title_bar(
@@ -236,23 +232,9 @@ fn harness_with_title_bar(
     theme: egui::Theme,
     manage: bool,
     scale: f32,
-    bar: artcraft_launcher_ui_egui::TitleBar,
+    bar: guildhall_ui_egui::TitleBar,
 ) -> (Harness<'static, Option<LauncherUi>>, Rc<RefCell<Vec<Command>>>) {
     harness_full(events, view, theme, manage, scale, bar, Rc::default(), None, None)
-}
-
-fn harness_with_discord(discord_url: Option<&'static str>) -> (Harness<'static, Option<LauncherUi>>, Rc<RefCell<Vec<Command>>>) {
-    harness_full(
-        events(),
-        ViewMode::Grid,
-        egui::Theme::Dark,
-        true,
-        1.0,
-        artcraft_launcher_ui_egui::TitleBar::Native,
-        Rc::default(),
-        None,
-        discord_url,
-    )
 }
 
 #[allow(clippy::too_many_arguments)] // Test fixture inputs vary independently across existing cases.
@@ -265,23 +247,23 @@ fn harness_full(
     theme: egui::Theme,
     manage: bool,
     scale: f32,
-    bar: artcraft_launcher_ui_egui::TitleBar,
+    bar: guildhall_ui_egui::TitleBar,
     pictures: Rc<Cell<Pictures>>,
     platform: Option<Platform>,
     discord_url: Option<&'static str>,
 ) -> (Harness<'static, Option<LauncherUi>>, Rc<RefCell<Vec<Command>>>) {
-    struct HeaderHost(artcraft_launcher_ui_egui::TitleBar, Option<&'static str>);
+    struct HeaderHost(guildhall_ui_egui::TitleBar, Option<&'static str>);
     impl Host for HeaderHost {
-        fn title_bar(&self) -> artcraft_launcher_ui_egui::TitleBar {
+        fn title_bar(&self) -> guildhall_ui_egui::TitleBar {
             self.0
         }
         fn discord_url(&self) -> &'static str {
-            self.1.unwrap_or(artcraft_launcher_core::catalog::DISCORD_URL)
+            self.1.unwrap_or(guildhall_core::catalog::DISCORD_URL)
         }
     }
     // Integration tests compile without cfg!(test), so system_lang() picks up the
     // developer's locale. Force English so labels match the assertions.
-    artcraft_launcher_ui_egui::i18n::set_test_lang(artcraft_launcher_ui_egui::i18n::Lang::EN);
+    guildhall_ui_egui::i18n::set_test_lang(guildhall_ui_egui::i18n::Lang::EN);
     let sent = Rc::new(RefCell::new(Vec::new()));
     let sent2 = sent.clone();
     let fake = Fake { events, sent: sent2, manage, pictures, asked: Vec::new(), clock: Rc::new(Cell::new(NOW)) };
@@ -299,9 +281,9 @@ fn harness_full(
             {
                 let mut s = settings.clone();
                 s.theme = if theme == egui::Theme::Dark {
-                    artcraft_launcher_ui_egui::theme::ThemeChoice::Dark
+                    guildhall_ui_egui::theme::ThemeChoice::Dark
                 } else {
-                    artcraft_launcher_ui_egui::theme::ThemeChoice::Light
+                    guildhall_ui_egui::theme::ThemeChoice::Light
                 };
                 *state = Some(LauncherUi::new(ui.ctx(), b, s));
             }
@@ -315,11 +297,11 @@ fn harness_full(
     (harness, sent)
 }
 
-/// Save a PNG under `ARTCRAFT_LAUNCHER_SNAPSHOTS` when that is set. `name` is a test-owned file
+/// Save a PNG under `GUILDHALL_SNAPSHOTS` when that is set. `name` is a test-owned file
 /// stem (the test names and sizes make each one unique), never a path: a separator is rejected so
 /// no caller can write outside the evidence directory.
 fn snapshot(h: &mut Harness<'_, Option<LauncherUi>>, name: &str) {
-    let Some(dir) = std::env::var_os("ARTCRAFT_LAUNCHER_SNAPSHOTS") else { return };
+    let Some(dir) = std::env::var_os("GUILDHALL_SNAPSHOTS") else { return };
     assert!(
         !name.is_empty() && !name.contains(['/', '\\']) && name != "." && name != "..",
         "snapshot name must be one pathless file stem, got {name:?}"
@@ -337,7 +319,7 @@ fn folder_harness(picked: Rc<RefCell<Option<String>>>) -> (Harness<'static, Opti
             self.0.borrow_mut().take()
         }
     }
-    artcraft_launcher_ui_egui::i18n::set_test_lang(artcraft_launcher_ui_egui::i18n::Lang::EN);
+    guildhall_ui_egui::i18n::set_test_lang(guildhall_ui_egui::i18n::Lang::EN);
     let sent = Rc::new(RefCell::new(Vec::new()));
     let mut backend = Some(Fake {
         events: vec![
@@ -390,7 +372,7 @@ fn app_and_launcher_offer_version_choices_without_starting_an_install() {
     h.get_by_label("Latest release");
     h.get_by_label("Nightly (none published yet)");
     assert!(h.query_by_label("Launcher versions").is_none(), "version selection belongs in Settings, not another dialog");
-    assert!(sent.borrow().iter().any(|c| matches!(c, Command::ListVersions { app } if app == artcraft_launcher_core::catalog::LAUNCHER_ID)));
+    assert!(sent.borrow().iter().any(|c| matches!(c, Command::ListVersions { app } if app == guildhall_core::catalog::LAUNCHER_ID)));
 }
 
 #[test]
@@ -398,13 +380,13 @@ fn version_choices_have_room_and_nightly_scrolls_with_the_versions() {
     let releases: Vec<_> = (1..=25)
         .rev()
         .map(|v| {
-            let mut r = release("artcraft-launcher", &format!("0.{v}.0"), NOW);
+            let mut r = release("guildhall", &format!("0.{v}.0"), NOW);
             r.assets[0].sha256 = Some("0".repeat(64));
             r
         })
         .collect();
     let mut ev = events();
-    ev.push(Event::Versions { app: artcraft_launcher_core::catalog::LAUNCHER_ID.into(), result: Ok(releases) });
+    ev.push(Event::Versions { app: guildhall_core::catalog::LAUNCHER_ID.into(), result: Ok(releases) });
     let (mut h, _) = harness_with(ev, ViewMode::Grid, egui::Theme::Dark, true, 1.0);
     h.set_size(egui::vec2(1180.0, 1100.0));
     h.run_steps(6);
@@ -663,11 +645,11 @@ fn the_install_folder_fields_default_to_the_hosts_answer() {
             *self.initial.borrow_mut() = Some(initial.map(str::to_string));
             self.picked.borrow_mut().take()
         }
-        fn default_install_folder(&mut self, _kind: artcraft_launcher_core::PackageKind, _arch: Option<Arch>) -> Option<String> {
+        fn default_install_folder(&mut self, _kind: guildhall_core::PackageKind, _arch: Option<Arch>) -> Option<String> {
             Some("/Applications".into())
         }
     }
-    artcraft_launcher_ui_egui::i18n::set_test_lang(artcraft_launcher_ui_egui::i18n::Lang::EN);
+    guildhall_ui_egui::i18n::set_test_lang(guildhall_ui_egui::i18n::Lang::EN);
     let sent = Rc::new(RefCell::new(Vec::new()));
     let mut backend = Some(Fake {
         events: vec![
@@ -738,7 +720,7 @@ impl Host for PackageHost {
         *self.initial.borrow_mut() = Some(initial.map(str::to_string));
         None
     }
-    fn default_install_folder(&mut self, kind: artcraft_launcher_core::PackageKind, arch: Option<Arch>) -> Option<String> {
+    fn default_install_folder(&mut self, kind: guildhall_core::PackageKind, arch: Option<Arch>) -> Option<String> {
         Some(format!("{kind:?} {:?}", arch?))
     }
 }
@@ -747,9 +729,9 @@ impl Host for PackageHost {
 /// Returns the harness and what Browse was last opened at.
 fn windows_package_harness(
     apps: &[(&str, &[&str])],
-    preferred: Vec<artcraft_launcher_core::PackageKind>,
+    preferred: Vec<guildhall_core::PackageKind>,
 ) -> (Harness<'static, Option<LauncherUi>>, BrowsedFrom) {
-    artcraft_launcher_ui_egui::i18n::set_test_lang(artcraft_launcher_ui_egui::i18n::Lang::EN);
+    guildhall_ui_egui::i18n::set_test_lang(guildhall_ui_egui::i18n::Lang::EN);
     let mut events = Vec::new();
     for (id, assets) in apps {
         let mut latest = release(id, "0.6.0", NOW);
@@ -783,7 +765,7 @@ fn windows_package_harness(
 #[test]
 fn the_install_folder_default_follows_the_package_the_backend_falls_back_to() {
     let (mut h, initial) =
-        windows_package_harness(&[("photocraft", &["photocraft-0.6.0-windows-x86.msi"])], vec![artcraft_launcher_core::PackageKind::PortableZip]);
+        windows_package_harness(&[("photocraft", &["photocraft-0.6.0-windows-x86.msi"])], vec![guildhall_core::PackageKind::PortableZip]);
     h.run_steps(8);
     h.get_by_label("Install").scroll_to_me();
     h.run_steps(3);
@@ -825,7 +807,7 @@ fn windows_package_choice_can_select_portable_and_configures_the_backend() {
         egui::Theme::Light,
         true,
         1.0,
-        artcraft_launcher_ui_egui::TitleBar::Native,
+        guildhall_ui_egui::TitleBar::Native,
         Rc::default(),
         Some(Platform { os: Os::Windows, arch: Arch::X64 }),
         None,
@@ -837,11 +819,11 @@ fn windows_package_choice_can_select_portable_and_configures_the_backend() {
     h.run_steps(2);
     h.get_by_label("Portable (.zip)").click();
     h.run_steps(3);
-    assert_eq!(h.state().as_ref().unwrap().settings.preferred_kinds, [artcraft_launcher_core::PackageKind::PortableZip]);
+    assert_eq!(h.state().as_ref().unwrap().settings.preferred_kinds, [guildhall_core::PackageKind::PortableZip]);
     assert!(
         sent.borrow()
             .iter()
-            .any(|command| matches!(command, Command::Configure(options) if options.kinds == [artcraft_launcher_core::PackageKind::PortableZip]))
+            .any(|command| matches!(command, Command::Configure(options) if options.kinds == [guildhall_core::PackageKind::PortableZip]))
     );
 }
 
@@ -856,7 +838,7 @@ fn a_narrow_settings_row_keeps_its_control_clear_of_its_label() {
         egui::Theme::Light,
         true,
         1.0,
-        artcraft_launcher_ui_egui::TitleBar::Native,
+        guildhall_ui_egui::TitleBar::Native,
         Rc::default(),
         Some(Platform { os: Os::Windows, arch: Arch::X64 }),
         None,
@@ -1056,7 +1038,7 @@ fn the_actual_open_button_launches_once_across_a_discarded_pass() {
 /// A toast created by logic while no window ran is shown once on the first drawing pass and
 /// expires relative to that pass.
 fn a_job_finished_while_hidden_shows_one_fresh_toast_on_the_next_frame() {
-    artcraft_launcher_ui_egui::i18n::set_test_lang(artcraft_launcher_ui_egui::i18n::Lang::EN);
+    guildhall_ui_egui::i18n::set_test_lang(guildhall_ui_egui::i18n::Lang::EN);
     let sent = Rc::new(RefCell::new(Vec::new()));
     let backend = Fake {
         events: vec![Event::JobFinished { app: "photocraft".into(), result: Ok("PhotoCraft updated to 0.5.0".into()) }],
@@ -1189,8 +1171,7 @@ fn grid_shows_every_status_and_installs_on_click() {
     assert!(updated.iter().all(|l| l.starts_with("Last updated: Oct ") && l.ends_with(", 2026")), "{updated:?}");
     // The window has no title bar of its own here (the web build, and the tests).
     assert!(h.query_by_label("Close").is_none());
-    assert!(h.query_all_by_label_contains("Discord").count() >= 1); // the footer icon (the header has none)
-    assert!(h.query_by_label("Join the ArtCraft community on Discord").is_none(), "no Discord link in the header");
+    assert_eq!(h.query_all_by_label_contains("Discord").count(), 0, "Guildhall links to none of ArtCraft's accounts");
     assert!(h.query_all_by_label("Coming soon").count() >= 1);
     h.get_by_label_contains("48 MB of 131 MB");
     h.get_by_label("Update all (2)").click();
@@ -1206,7 +1187,7 @@ fn downloads_can_be_paused_resumed_and_discarded() {
     h.run_steps(4);
     // Bring the paused and reconnecting apps on screen.
     if let Some(l) = h.state_mut().as_mut() {
-        l.settings.filter = artcraft_launcher_ui_egui::settings::Filter::NotInstalled;
+        l.settings.filter = guildhall_ui_egui::settings::Filter::NotInstalled;
     }
     h.run_steps(6);
     snapshot(&mut h, "grid-downloads-dark");
@@ -1232,7 +1213,7 @@ fn a_kept_download_offers_retry_install_and_download_again() {
     let (mut h, sent) = harness(ViewMode::Grid, egui::Theme::Dark, true);
     h.run_steps(4);
     if let Some(l) = h.state_mut().as_mut() {
-        l.settings.filter = artcraft_launcher_ui_egui::settings::Filter::NotInstalled;
+        l.settings.filter = guildhall_ui_egui::settings::Filter::NotInstalled;
     }
     h.run_steps(6);
     // Below the fold in the restyled grid: bring the card on screen first.
@@ -1327,8 +1308,8 @@ fn an_install_waiting_for_another_says_so_and_can_be_cancelled() {
 #[test]
 fn the_launcher_update_waiting_for_other_installs_can_be_cancelled() {
     let mut ev = events();
-    ev.push(Event::LauncherUpdate(release("artcraft-launcher", "0.2.0", NOW)));
-    ev.push(Event::Progress { app: "artcraft-launcher".into(), phase: JobPhase::Waiting });
+    ev.push(Event::LauncherUpdate(release("guildhall", "0.2.0", NOW)));
+    ev.push(Event::Progress { app: "guildhall".into(), phase: JobPhase::Waiting });
     let (mut h, sent) = harness_with(ev, ViewMode::Grid, egui::Theme::Dark, true, 1.0);
     h.run_steps(6);
     snapshot(&mut h, "grid-launcher-waiting-dark");
@@ -1336,15 +1317,15 @@ fn the_launcher_update_waiting_for_other_installs_can_be_cancelled() {
     sent.borrow_mut().clear();
     h.get_by_label("Cancel update").click();
     h.run_steps(2);
-    assert_eq!(*sent.borrow(), [Command::Cancel { app: "artcraft-launcher".into() }]);
+    assert_eq!(*sent.borrow(), [Command::Cancel { app: "guildhall".into() }]);
 }
 
 #[test]
 /// The launcher banner's Cancel crosses the action boundary once per visible frame.
 fn the_launcher_banner_cancel_is_sent_once_across_discarded_passes() {
     let mut ev = events();
-    ev.push(Event::LauncherUpdate(release("artcraft-launcher", "0.2.0", NOW)));
-    ev.push(Event::Progress { app: "artcraft-launcher".into(), phase: JobPhase::Waiting });
+    ev.push(Event::LauncherUpdate(release("guildhall", "0.2.0", NOW)));
+    ev.push(Event::Progress { app: "guildhall".into(), phase: JobPhase::Waiting });
     let (mut h, sent) = harness_with(ev, ViewMode::Grid, egui::Theme::Dark, true, 1.0);
     h.run_steps(6);
     let at = h.get_by_label("Cancel update").rect().center();
@@ -1365,9 +1346,9 @@ fn each_cancellation_says_what_it_called_off() {
     ev.push(Event::Progress { app: "lightcraft".into(), phase: JobPhase::Waiting });
     ev.push(finished("lightcraft", CANCELLED));
     // The launcher's own update, cancelled while it waited.
-    ev.push(Event::LauncherUpdate(release("artcraft-launcher", "0.2.0", NOW)));
-    ev.push(Event::Progress { app: "artcraft-launcher".into(), phase: JobPhase::Waiting });
-    ev.push(finished("artcraft-launcher", CANCELLED));
+    ev.push(Event::LauncherUpdate(release("guildhall", "0.2.0", NOW)));
+    ev.push(Event::Progress { app: "guildhall".into(), phase: JobPhase::Waiting });
+    ev.push(finished("guildhall", CANCELLED));
     // A download cancelled mid-way.
     ev.push(finished("filmcraft", CANCELLED));
     let (mut h, _) = harness_with(ev, ViewMode::Grid, egui::Theme::Dark, true, 1.0);
@@ -1415,7 +1396,7 @@ fn hiding_an_app_removes_it_until_it_is_unhidden() {
     h.get_by_role_and_label(egui::accesskit::Role::Label, "PhotoCraft");
     assert!(h.query_by_label("Hidden Apps 1").is_none());
     assert!(h.state().as_ref().unwrap().settings.hidden.is_empty());
-    assert_eq!(h.state().as_ref().unwrap().settings.filter, artcraft_launcher_ui_egui::settings::Filter::All);
+    assert_eq!(h.state().as_ref().unwrap().settings.filter, guildhall_ui_egui::settings::Filter::All);
 }
 
 #[test]
@@ -1534,14 +1515,14 @@ fn the_first_close_to_the_tray_is_explained_once() {
     l.hidden_to_tray(&mut host);
     assert!(l.settings.tray_hint_shown);
     assert_eq!(host.0.len(), 1, "{:?}", host.0);
-    assert_eq!(host.0[0].0, "ArtCraft Launcher is still running");
+    assert_eq!(host.0[0].0, "Guildhall is still running");
     assert!(host.0[0].1.contains("tray icon"), "{}", host.0[0].1);
 }
 
 #[test]
-/// The Settings dialog announces its heading once and shows the community section's Discord
-/// entry alongside the footer's.
-fn settings_link_to_discord() {
+/// The Settings dialog announces its heading once, says Guildhall is unofficial and links only
+/// Guildhall's own GitHub.
+fn settings_say_guildhall_is_unofficial() {
     let (mut h, _) = harness(ViewMode::Grid, egui::Theme::Dark, true);
     h.run_steps(6);
     h.get_by_label("Settings").click();
@@ -1553,9 +1534,15 @@ fn settings_link_to_discord() {
         "the Settings hero icon must not repeat its heading"
     );
     snapshot(&mut h, "settings-dark");
-    h.get_by_label("Questions, ideas and news from the ArtCraft team");
-    // The footer icon and the button in Settings.
-    assert!(h.query_all_by_label_contains("Discord").count() >= 2);
+    const NOTICE: &str = "Guildhall is unofficial: it is not made, endorsed or supported by ArtCraft. Ask for help on its GitHub page.";
+    assert_eq!(h.query_all_by_label_contains("Discord").count(), 0);
+    h.get_by_label(NOTICE).scroll_to_me();
+    h.run_steps(4);
+    // The panel's one button opens Guildhall's own repository.
+    let top = h.get_by_label(NOTICE).rect().top();
+    let n = h.query_all_by_label("GitHub").position(|g| g.rect().top() > top && g.rect().height() > 30.0);
+    let url = n.and_then(|n| click_nth_opens(&mut h, "GitHub", n));
+    assert_eq!(url.as_deref(), Some("https://github.com/Mansi1/guildhall"));
 }
 
 #[test]
@@ -1589,28 +1576,26 @@ fn the_uninstall_prompt_keeps_its_own_size_after_a_taller_dialog() {
 }
 
 #[test]
-/// The footer links website and GitHub, cards link only GitHub, and the table menu adds the
-/// app's website and repository.
+/// The footer links only Guildhall's GitHub, cards link only their own GitHub, and the table menu
+/// adds the app's website and repository.
 fn links_to_the_website_github_and_each_apps_pages() {
     let (mut h, _) = harness(ViewMode::Grid, egui::Theme::Dark, true);
     h.run_steps(6);
-    // Footer: website, GitHub and Discord.
-    for label in ["Website", "GitHub", "Discord"] {
-        assert!(h.query_all_by_label(label).count() >= 1, "{label}");
-    }
-    // Cards: every app links to its repo and to its own page on getartcraft.com (plus the footer's).
+    // Footer: GitHub only.
+    assert!(h.query_all_by_label("GitHub").count() >= 1);
+    assert_eq!(h.query_all_by_label("Discord").count(), 0);
+    // Cards: every app links to its repo (plus the footer's).
     let shown_cards = h.query_all_by_label("GitHub").count() - 1;
-    let shown_sites = h.query_all_by_label("Website").count() - 1;
     assert!(shown_cards >= 13, "{shown_cards}");
-    assert_eq!(shown_sites, 0, "the cards only link to GitHub; the website is the footer's icon");
+    assert_eq!(h.query_all_by_label("Website").count(), 0, "the cards only link to GitHub");
     // The table's … menu has the app's website and GitHub repo.
     let (mut h, _) = harness(ViewMode::Table, egui::Theme::Dark, true);
     h.run_steps(6);
     h.get_all_by_label_contains("More actions").nth(8).unwrap().click(); // WordCraft
     h.run_steps(3);
     h.get_by_label("GitHub repository");
-    // The footer's Website link and WordCraft's now-live one in the menu.
-    assert!(h.query_all_by_label_contains("Website").count() >= 2);
+    // WordCraft's own website, in the menu.
+    assert!(h.query_all_by_label_contains("Website").count() >= 1);
 }
 
 /// Clicks the `n`th widget labelled `label` and returns the URL the app asked to open.
@@ -1640,25 +1625,19 @@ fn all_opened(h: &mut Harness<'_, Option<LauncherUi>>, label: &str) -> Vec<Strin
 }
 
 #[test]
-/// Footer, card and social links open their expected pages; one card menu's All releases action
-/// opens a repository releases page.
+/// Footer and card links open their expected pages; one card menu's All releases action opens a
+/// repository releases page.
 fn links_open_the_right_pages() {
     let (mut h, _) = harness(ViewMode::Grid, egui::Theme::Dark, true);
     h.run_steps(6);
-    assert_eq!(click_opens(&mut h, "Discord").as_deref(), Some("https://discord.gg/artcraft"));
-    // The footer's ArtCraft links and each card's own pages.
+    // The footer's Guildhall link and each card's own pages.
     let github = all_opened(&mut h, "GitHub");
-    assert!(github.contains(&"https://github.com/storytold".to_string()), "{github:?}");
+    assert!(github.contains(&"https://github.com/Mansi1/guildhall".to_string()), "{github:?}");
     assert!(github.contains(&"https://github.com/storytold/photocraft".to_string()), "{github:?}");
-    let sites = all_opened(&mut h, "Website");
-    assert!(sites.contains(&"https://getartcraft.com".to_string()), "{sites:?}");
-    assert_eq!(sites, vec!["https://getartcraft.com".to_string()], "{sites:?}");
-    // Social icons in the footer.
-    assert_eq!(click_opens(&mut h, "X").as_deref(), Some("https://x.com/get_artcraft"));
-    assert_eq!(click_opens(&mut h, "YouTube").as_deref(), Some("https://www.youtube.com/@OfficialArtcraftStudios"));
-    assert_eq!(click_opens(&mut h, "TikTok").as_deref(), Some("https://www.tiktok.com/@artcraft.studios"));
-    assert_eq!(click_opens(&mut h, "Instagram").as_deref(), Some("https://www.instagram.com/officialartcraftstudios"));
-    assert_eq!(click_opens(&mut h, "LinkedIn").as_deref(), Some("https://www.linkedin.com/company/artcraft-ai"));
+    // None of ArtCraft's own accounts.
+    for label in ["Discord", "X", "YouTube", "TikTok", "Instagram", "LinkedIn"] {
+        assert_eq!(h.query_all_by_label(label).count(), 0, "{label}");
+    }
     // The … menu.
     h.get_all_by_label_contains("More actions").next().unwrap().click();
     h.run_steps(3);
@@ -1689,7 +1668,7 @@ fn hostile_release_asset_urls_never_reach_the_opener() {
     assert!(!opened.iter().any(|url| url.as_str() == HOSTILE), "a hostile card asset URL reached the opener: {opened:?}");
 
     let mut ev = events();
-    let mut launcher_release = release("artcraft-launcher", "0.2.0", NOW);
+    let mut launcher_release = release("guildhall", "0.2.0", NOW);
     launcher_release.assets[0].url = HOSTILE.to_string();
     ev.push(Event::LauncherUpdate(launcher_release));
     let (mut h, _) = harness_with(ev, ViewMode::Grid, egui::Theme::Dark, false, 1.0);
@@ -1697,13 +1676,6 @@ fn hostile_release_asset_urls_never_reach_the_opener() {
     assert_eq!(h.query_all_by_label("Download").count(), 1, "the launcher update dialog must be open");
     let opened = all_opened(&mut h, "Download");
     assert!(opened.is_empty(), "a hostile launcher-dialog asset URL reached the opener: {opened:?}");
-}
-
-#[test]
-fn discord_link_opens_app_when_discord_is_installed() {
-    let (mut h, _) = harness_with_discord(Some(artcraft_launcher_core::catalog::DISCORD_APP_URL));
-    h.run_steps(6);
-    assert_eq!(click_opens(&mut h, "Discord").as_deref(), Some("discord://-/invite/artcraft"));
 }
 
 #[test]
@@ -1750,7 +1722,7 @@ fn the_launcher_updates_itself_and_quits_to_restart() {
     }
     let sent = Rc::new(RefCell::new(Vec::new()));
     let mut events = events();
-    events.push(Event::LauncherUpdate(release("artcraft-launcher", "0.2.0", NOW)));
+    events.push(Event::LauncherUpdate(release("guildhall", "0.2.0", NOW)));
     let shared_events = Rc::new(RefCell::new(Vec::new()));
     struct Scripted {
         inner: Fake,
@@ -1796,9 +1768,9 @@ fn the_launcher_updates_itself_and_quits_to_restart() {
         None,
     );
     h.run_steps(6);
-    h.get_by_role_and_label(egui::accesskit::Role::Label, "ArtCraft Launcher 0.2.0 is available.");
+    h.get_by_role_and_label(egui::accesskit::Role::Label, "Guildhall 0.2.0 is available.");
     assert_eq!(
-        h.query_all_by_label_contains("ArtCraft Launcher 0.2.0 is available").count(),
+        h.query_all_by_label_contains("Guildhall 0.2.0 is available").count(),
         1,
         "the update title is announced once, not once by the icon and once by the heading"
     );
@@ -1806,9 +1778,7 @@ fn the_launcher_updates_itself_and_quits_to_restart() {
     h.run_steps(2);
     assert!(sent.borrow().contains(&Command::UpdateLauncher));
     // Downloading: the banner shows progress instead of the button.
-    shared_events
-        .borrow_mut()
-        .push(Event::Progress { app: "artcraft-launcher".into(), phase: JobPhase::Downloading { done: 5 << 20, total: 10 << 20 } });
+    shared_events.borrow_mut().push(Event::Progress { app: "guildhall".into(), phase: JobPhase::Downloading { done: 5 << 20, total: 10 << 20 } });
     h.run_steps(3);
     assert!(h.query_by_label("Update and restart").is_none());
     assert!(!quit.get());
@@ -1823,13 +1793,13 @@ fn the_launcher_updates_itself_and_quits_to_restart() {
 /// toolbar banner.
 fn launcher_update_prompts_to_relaunch_with_updated_version() {
     let mut ev = events();
-    ev.push(Event::LauncherUpdate(release("artcraft-launcher", "0.2.0", NOW)));
+    ev.push(Event::LauncherUpdate(release("guildhall", "0.2.0", NOW)));
     let (mut h, _) = harness_with(ev, ViewMode::Grid, egui::Theme::Dark, true, 1.0);
     h.run_steps(6);
     // Dialog pops up on launch with the update prompt
-    h.get_by_role_and_label(egui::accesskit::Role::Label, "ArtCraft Launcher 0.2.0 is available.");
+    h.get_by_role_and_label(egui::accesskit::Role::Label, "Guildhall 0.2.0 is available.");
     assert_eq!(
-        h.query_all_by_label_contains("ArtCraft Launcher 0.2.0 is available").count(),
+        h.query_all_by_label_contains("Guildhall 0.2.0 is available").count(),
         1,
         "the update title is announced once, not once by the icon and once by the heading"
     );
@@ -1859,7 +1829,7 @@ fn the_current_desktop_setting_is_only_offered_where_the_os_has_desktops() {
 /// A feed alert is acknowledged only by OK (persisted), while an inline announcement stays until
 /// its own Dismiss is clicked.
 fn feed_announcements_and_alerts_show_until_dismissed() {
-    use artcraft_launcher_core::feed::Notice;
+    use guildhall_core::feed::Notice;
     let notice = |id: &str, title: &str, link: Option<&str>| Notice {
         id: id.into(),
         title: title.into(),
@@ -1907,7 +1877,7 @@ fn feed_announcements_and_alerts_show_until_dismissed() {
 
 #[test]
 fn automatic_checks_run_every_twelve_minutes() {
-    use artcraft_launcher_ui_egui::settings::CheckEvery;
+    use guildhall_ui_egui::settings::CheckEvery;
     assert_eq!(Settings::default().check_every.seconds(), Some(720));
     // Older saved choices still load, and mean "automatically" now.
     assert_eq!(CheckEvery::Day.seconds(), Some(720));
@@ -1919,7 +1889,7 @@ fn automatic_checks_run_every_twelve_minutes() {
 /// `UpdateLauncher`.
 fn automatic_updates_queue_installs_for_outdated_apps_and_launcher() {
     let mut ev = events();
-    ev.push(Event::LauncherUpdate(release("artcraft-launcher", "0.2.0", NOW)));
+    ev.push(Event::LauncherUpdate(release("guildhall", "0.2.0", NOW)));
     let sent = Rc::new(RefCell::new(Vec::new()));
     let sent2 = sent.clone();
     let mut backend =
@@ -1949,7 +1919,7 @@ fn automatic_updates_queue_installs_for_outdated_apps_and_launcher() {
 /// With auto-update off, no app install or launcher update is queued.
 fn automatic_updates_are_disabled_by_default() {
     let mut ev = events();
-    ev.push(Event::LauncherUpdate(release("artcraft-launcher", "0.2.0", NOW)));
+    ev.push(Event::LauncherUpdate(release("guildhall", "0.2.0", NOW)));
     let sent = Rc::new(RefCell::new(Vec::new()));
     let sent2 = sent.clone();
     let mut backend =
@@ -2023,8 +1993,8 @@ fn web_build_offers_downloads() {
 fn custom_title_bar_has_window_buttons() {
     struct FramelessHost;
     impl Host for FramelessHost {
-        fn title_bar(&self) -> artcraft_launcher_ui_egui::TitleBar {
-            artcraft_launcher_ui_egui::TitleBar::Custom
+        fn title_bar(&self) -> guildhall_ui_egui::TitleBar {
+            guildhall_ui_egui::TitleBar::Custom
         }
     }
     let mut backend = Some(Fake {
@@ -2063,7 +2033,7 @@ fn custom_title_bar_has_window_buttons() {
 /// so it belongs to the close button, as it does with Windows' own caption buttons (#374).
 #[test]
 fn maximized_the_close_button_reaches_the_screens_corner() {
-    let (mut h, _) = harness_with_title_bar(events(), ViewMode::Grid, egui::Theme::Dark, true, 1.0, artcraft_launcher_ui_egui::TitleBar::Custom);
+    let (mut h, _) = harness_with_title_bar(events(), ViewMode::Grid, egui::Theme::Dark, true, 1.0, guildhall_ui_egui::TitleBar::Custom);
     h.run_steps(6);
     let set_maximized = |h: &mut Harness<'_, Option<LauncherUi>>, maximized: bool| {
         h.input_mut().viewports.entry(egui::ViewportId::ROOT).or_default().maximized = Some(maximized);
@@ -2311,7 +2281,7 @@ fn every_page_opens_and_pages_through_its_pictures() {
     // Tall enough to show all thirteen cards at once.
     h.set_size(egui::vec2(1180.0, 3000.0));
     h.run_steps(8);
-    for d in &artcraft_launcher_core::details::DETAILS {
+    for d in &guildhall_core::details::DETAILS {
         let name = SUITE.iter().find(|a| a.id == d.id).map(|a| a.name).unwrap_or(d.id);
         h.get_by_label(&format!("{name} details")).scroll_to_me();
         h.run_steps(3);
@@ -2416,12 +2386,9 @@ fn the_rate_limit_notice_never_runs_under_the_footer_links() {
         let checked = h.get_by_label_contains("Checked ").rect();
         // Cut short in a narrow window, but enough of it left to read.
         assert!(notice.width() >= 120.0 && notice.right() <= width, "{width}: notice {notice:?}");
-        // Everything on the footer's right: the website, GitHub and Discord icons and the social icons.
-        let mut right = Vec::new();
-        for label in ["Website", "GitHub", "Discord", "X", "YouTube", "TikTok", "Instagram", "LinkedIn"] {
-            right.extend(h.query_all_by_label(label).map(|n| n.rect()).filter(|r| (r.center().y - notice.center().y).abs() < 12.0));
-        }
-        assert_eq!(right.len(), 8, "{width}: {right:?}");
+        // Everything on the footer's right: the GitHub icon.
+        let right: Vec<_> = h.query_all_by_label("GitHub").map(|n| n.rect()).filter(|r| (r.center().y - notice.center().y).abs() < 12.0).collect();
+        assert_eq!(right.len(), 1, "{width}: {right:?}");
         assert!(h.query_by_label_contains("Installing for").is_none(), "{width}: the footer no longer names the platform");
         for r in right {
             assert!(!r.intersects(notice), "{width}: notice {notice:?} overlaps {r:?}");
@@ -2458,7 +2425,7 @@ fn toolbar_keeps_navigation_refresh_search_and_view_on_one_unclipped_row() {
 
 #[test]
 fn the_toolbar_has_no_filter_dropdown() {
-    use artcraft_launcher_ui_egui::settings::Filter;
+    use guildhall_ui_egui::settings::Filter;
     let (mut h, _) = harness(ViewMode::Grid, egui::Theme::Dark, true);
     h.run_steps(6);
     for label in ["All 13", "Installed 4", "Updates 2", "Not installed 9"] {
@@ -2471,7 +2438,7 @@ fn the_toolbar_has_no_filter_dropdown() {
 
 #[test]
 fn saved_filters_are_migrated_on_ui_construction() {
-    use artcraft_launcher_ui_egui::settings::Filter;
+    use guildhall_ui_egui::settings::Filter;
 
     for (saved, expected) in [
         (r#"{"filter":"All"}"#, Filter::All),
@@ -2500,7 +2467,7 @@ fn saved_filters_are_migrated_on_ui_construction() {
 /// Checks that, at one window width, every header control stays inside the window and clear of
 /// the brand text, that a custom title bar's buttons are there and inside, and snapshots the
 /// three widths that matter visually.
-fn assert_header_at_width(h: &mut Harness<'_, Option<LauncherUi>>, bar: artcraft_launcher_ui_egui::TitleBar, theme: egui::Theme, width: f32) {
+fn assert_header_at_width(h: &mut Harness<'_, Option<LauncherUi>>, bar: guildhall_ui_egui::TitleBar, theme: egui::Theme, width: f32) {
     for label in ["Show apps as cards", "Show apps as a table", "Settings", "Check for updates"] {
         let rect = h.get_by_label(label).rect();
         assert!(rect.left() >= 0.0 && rect.right() <= width, "{bar:?} {width}: {label} {rect:?}");
@@ -2508,7 +2475,7 @@ fn assert_header_at_width(h: &mut Harness<'_, Option<LauncherUi>>, bar: artcraft
             assert!(!rect.intersects(text.rect()), "{bar:?} {width}: Craft App Suite overlaps {label} {rect:?}");
         }
     }
-    if bar == artcraft_launcher_ui_egui::TitleBar::Custom {
+    if bar == guildhall_ui_egui::TitleBar::Custom {
         for label in ["Minimize", "Maximize", "Close"] {
             let rect = h.get_by_label(label).rect();
             assert!(rect.left() >= 0.0 && rect.right() <= width, "{width}: {label} {rect:?}");
@@ -2525,7 +2492,7 @@ fn assert_header_at_width(h: &mut Harness<'_, Option<LauncherUi>>, bar: artcraft
 
 #[test]
 fn narrow_header_keeps_the_view_switch_clear_of_brand_text() {
-    use artcraft_launcher_ui_egui::TitleBar;
+    use guildhall_ui_egui::TitleBar;
     for theme in [egui::Theme::Dark, egui::Theme::Light] {
         for bar in [TitleBar::Native, TitleBar::MacOs, TitleBar::Custom] {
             let (mut h, _) = harness_with_title_bar(events(), ViewMode::Grid, theme, true, 1.0, bar);
@@ -2554,7 +2521,7 @@ impl Host for OsMotion {
 /// animations (`reduce`) or not. Nothing is downloading, so the window is still unless something
 /// animates.
 fn short_window(reduce: Rc<Cell<bool>>) -> Harness<'static, Option<LauncherUi>> {
-    artcraft_launcher_ui_egui::i18n::set_test_lang(artcraft_launcher_ui_egui::i18n::Lang::EN);
+    guildhall_ui_egui::i18n::set_test_lang(guildhall_ui_egui::i18n::Lang::EN);
     let events = events().into_iter().filter(|e| !matches!(e, Event::Progress { .. })).collect();
     let mut backend =
         Some(Fake { events, sent: Rc::default(), manage: true, pictures: Rc::default(), asked: Vec::new(), clock: Rc::new(Cell::new(NOW)) });
@@ -2751,7 +2718,7 @@ fn changelog_shortcuts_zoom_only_the_notes_text() {
 
 #[test]
 fn command_m_minimizes_the_mac_window_only() {
-    use artcraft_launcher_ui_egui::TitleBar;
+    use guildhall_ui_egui::TitleBar;
     for bar in [TitleBar::MacOs, TitleBar::Native, TitleBar::Custom] {
         let (mut h, _) = harness_with_title_bar(events(), ViewMode::Grid, egui::Theme::Dark, true, 1.0, bar);
         h.run_steps(4);
@@ -2825,7 +2792,7 @@ fn a_not_installed_card_is_grey_until_the_pointer_is_over_it() {
 
 #[test]
 fn the_sort_offers_name_both_ways_recently_updated_and_frequently_used() {
-    use artcraft_launcher_ui_egui::settings::SortKey;
+    use guildhall_ui_egui::settings::SortKey;
     let (mut h, _) = harness(ViewMode::Grid, egui::Theme::Dark, true);
     h.run_steps(6);
     h.get_by_value("Name (A–Z)").click();
@@ -2846,7 +2813,7 @@ fn the_sort_offers_name_both_ways_recently_updated_and_frequently_used() {
 
 #[test]
 fn opening_an_app_counts_and_frequently_used_puts_the_most_opened_first() {
-    use artcraft_launcher_ui_egui::settings::SortKey;
+    use guildhall_ui_egui::settings::SortKey;
     let (mut h, sent) = harness(ViewMode::Grid, egui::Theme::Dark, true);
     h.run_steps(6);
     h.state_mut().as_mut().unwrap().settings.sort = SortKey::Frequent;
@@ -2866,7 +2833,7 @@ fn opening_an_app_counts_and_frequently_used_puts_the_most_opened_first() {
 
 #[test]
 fn an_apps_page_is_a_card_in_the_middle_with_next_and_previous_arrows_and_closes_from_outside() {
-    use artcraft_launcher_core::details::AppDetails;
+    use guildhall_core::details::AppDetails;
     let (mut h, _) = harness(ViewMode::Grid, egui::Theme::Dark, true);
     h.run_steps(6);
     let headline = |id: &str| AppDetails::by_id(id).unwrap().headline;

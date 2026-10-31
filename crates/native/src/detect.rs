@@ -10,7 +10,7 @@
 
 use std::path::{Path, PathBuf};
 
-use artcraft_launcher_core::{CraftApp, InstallSource, Installed, version};
+use guildhall_core::{CraftApp, InstallSource, Installed, version};
 
 use crate::manifest::Manifest;
 
@@ -59,7 +59,7 @@ fn from_manifest(app: &CraftApp, manifest: &Manifest) -> Option<Installed> {
     }
     // On macOS the bundle itself is the truth (the app may have updated itself).
     #[cfg(target_os = "macos")]
-    if rec.kind == artcraft_launcher_core::PackageKind::Dmg {
+    if rec.kind == guildhall_core::PackageKind::Dmg {
         return macos::read_bundle(app, &rec.path);
     }
     Some(Installed {
@@ -84,8 +84,8 @@ pub(crate) fn appimage_version(name: &str, stems: &[&str]) -> Option<Option<Stri
     if stems.iter().any(|s| base.eq_ignore_ascii_case(s)) {
         return Some(None);
     }
-    let parsed = artcraft_launcher_core::platform::parse_asset_name(&format!("{base}.AppImage"), stems)?;
-    (parsed.kind == artcraft_launcher_core::PackageKind::AppImage && parsed.token.starts_with("linux-")).then_some(Some(parsed.version))
+    let parsed = guildhall_core::platform::parse_asset_name(&format!("{base}.AppImage"), stems)?;
+    (parsed.kind == guildhall_core::PackageKind::AppImage && parsed.token.starts_with("linux-")).then_some(Some(parsed.version))
 }
 
 /// Who our Windows Installer packages name as their publisher. A community app's names its own
@@ -111,14 +111,13 @@ fn exe_candidates(app: &CraftApp, location: Option<&Path>, program_files: &[Path
     dirs.flat_map(|d| app.stems().map(move |s| d.join(format!("{s}.exe")))).collect()
 }
 
-/// The folder under `ArtCraft` that the MSI installs to when it is not the display name: the launcher
-/// installs to `ArtCraft\Launcher`, the apps to `ArtCraft\<App>`.
+/// The folder the launcher's MSI installs to when it is not the display name: `Guildhall\Launcher`.
 #[cfg_attr(not(windows), allow(dead_code))]
 fn suite_folders(app: &CraftApp, roots: &[PathBuf]) -> Vec<PathBuf> {
-    if app.id != artcraft_launcher_core::catalog::LAUNCHER_ID {
+    if app.id != guildhall_core::catalog::LAUNCHER_ID {
         return Vec::new();
     }
-    roots.iter().map(|root| root.join("ArtCraft").join("Launcher")).collect()
+    roots.iter().map(|root| root.join("Guildhall").join("Launcher")).collect()
 }
 
 /// The registry keys an MSI records its install folder in (value `InstallDir`). The launcher's package
@@ -126,8 +125,8 @@ fn suite_folders(app: &CraftApp, roots: &[PathBuf]) -> Vec<PathBuf> {
 #[cfg_attr(not(windows), allow(dead_code))]
 fn install_dir_keys(app: &CraftApp) -> Vec<String> {
     let mut keys = vec![format!(r"SOFTWARE\{}", app.name)];
-    if app.id == artcraft_launcher_core::catalog::LAUNCHER_ID {
-        keys.push(format!(r"SOFTWARE\{PUBLISHER}\{}", app.name));
+    if app.id == guildhall_core::catalog::LAUNCHER_ID {
+        keys.push(format!(r"SOFTWARE\{}\{}", app.msi_publisher.unwrap_or(PUBLISHER), app.name));
     }
     keys
 }
@@ -211,7 +210,7 @@ pub mod windows {
 
     /// Reads the ProductVersion string from a program's VERSIONINFO, in the first language that
     /// has one, without running the program or any other process.
-    pub fn executable_version(path: &std::path::Path) -> Option<artcraft_launcher_core::version::Version> {
+    pub fn executable_version(path: &std::path::Path) -> Option<guildhall_core::version::Version> {
         let path = dunce::canonicalize(path).ok()?;
         let info = winsafe::HVERSIONINFO::GetFileVersionInfo(path.to_str()?).ok()?;
         let listed = info.langs_and_cps().map(<[_]>::to_vec).unwrap_or_default();
@@ -231,7 +230,7 @@ pub mod windows {
     /// An MSI install found in the registry.
     pub struct MsiInstall {
         pub product_code: String,
-        pub version: Option<artcraft_launcher_core::version::Version>,
+        pub version: Option<guildhall_core::version::Version>,
         pub exe: Option<PathBuf>,
         /// The context of the uninstall record that named it: the machine's records are per-machine,
         /// the current account's own are per-user.
@@ -432,7 +431,7 @@ pub mod linux {
     /// pacman, Flatpak). Read once per detection pass.
     pub fn packages() -> Vec<Package> {
         let ours = |name: &str| {
-            artcraft_launcher_core::SUITE.iter().any(|a| {
+            guildhall_core::SUITE.iter().any(|a| {
                 [InstallSource::Deb, InstallSource::Rpm, InstallSource::Pacman, InstallSource::Flatpak]
                     .iter()
                     .any(|m| crate::packages::candidate_names(a, *m).iter().any(|n| n == name))
@@ -471,9 +470,8 @@ pub mod linux {
                     user_ids.extend(flatpaks.iter().map(|(id, _)| id.clone()));
                 }
                 // Bundles built from a release tarball often list no version: ask Flatpak directly.
-                for (id, version) in flatpaks
-                    .iter_mut()
-                    .filter(|(id, v)| v.is_empty() && artcraft_launcher_core::SUITE.iter().any(|a| a.bundle_ids().any(|b| b == *id)))
+                for (id, version) in
+                    flatpaks.iter_mut().filter(|(id, v)| v.is_empty() && guildhall_core::SUITE.iter().any(|a| a.bundle_ids().any(|b| b == *id)))
                 {
                     let info_args = [&["info"][..], scope, &[&arch, id]].concat();
                     if let Some(v) = crate::process::capture_flatpak(&info_args, t).as_deref().and_then(packages::parse_flatpak_info) {
@@ -617,7 +615,7 @@ mod linux_tests {
     #[test]
     fn ours_filter_matches_rpm_packages() {
         let ours = |name: &str| {
-            artcraft_launcher_core::SUITE.iter().any(|a| {
+            guildhall_core::SUITE.iter().any(|a| {
                 [InstallSource::Deb, InstallSource::Rpm, InstallSource::Pacman, InstallSource::Flatpak]
                     .iter()
                     .any(|m| crate::packages::candidate_names(a, *m).iter().any(|n| n == name))
@@ -683,7 +681,7 @@ mod linux_tests {
 
 #[cfg(test)]
 mod tests {
-    use artcraft_launcher_core::SUITE;
+    use guildhall_core::SUITE;
 
     use super::*;
 
@@ -1006,10 +1004,10 @@ mod tests {
     }
 
     #[test]
-    fn the_launcher_msi_installs_to_artcraft_launcher_and_the_apps_do_not() {
+    fn the_launcher_msi_installs_to_guildhall_and_the_apps_do_not() {
         let roots = roots();
-        let want: Vec<PathBuf> = roots.iter().map(|root| root.join("ArtCraft").join("Launcher")).collect();
-        assert_eq!(suite_folders(&artcraft_launcher_core::catalog::LAUNCHER, &roots), want);
+        let want: Vec<PathBuf> = roots.iter().map(|root| root.join("Guildhall").join("Launcher")).collect();
+        assert_eq!(suite_folders(&guildhall_core::catalog::LAUNCHER, &roots), want);
         let photo = CraftApp::by_id("photocraft").unwrap();
         assert!(suite_folders(photo, &roots).is_empty());
     }
@@ -1017,8 +1015,8 @@ mod tests {
     #[test]
     fn the_launcher_records_its_folder_under_the_publisher_key() {
         assert_eq!(
-            install_dir_keys(&artcraft_launcher_core::catalog::LAUNCHER),
-            [r"SOFTWARE\ArtCraft Launcher".to_string(), format!(r"SOFTWARE\{LEARNING_MACHINES}\ArtCraft Launcher")]
+            install_dir_keys(&guildhall_core::catalog::LAUNCHER),
+            [r"SOFTWARE\Guildhall".to_string(), r"SOFTWARE\Guildhall contributors\Guildhall".to_string()]
         );
         let photo = CraftApp::by_id("photocraft").unwrap();
         assert_eq!(install_dir_keys(photo), [r"SOFTWARE\PhotoCraft".to_string()]);

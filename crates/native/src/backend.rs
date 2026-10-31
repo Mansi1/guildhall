@@ -5,15 +5,15 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock, PoisonError};
 use std::time::{Duration, Instant};
 
-use artcraft_launcher_core::catalog::{LAUNCHER, LAUNCHER_ID};
-use artcraft_launcher_core::feed::{Feed, FeedAnswer};
-use artcraft_launcher_core::platform::{Arch, Os, Platform, pick_asset};
-use artcraft_launcher_core::protocol::{
+use guildhall_core::catalog::{LAUNCHER, LAUNCHER_ID};
+use guildhall_core::feed::{Feed, FeedAnswer};
+use guildhall_core::platform::{Arch, Os, Platform, pick_asset};
+use guildhall_core::protocol::{
     Backend, BackendOptions, CANCELLED, Capabilities, Command, Event, INSTALL_CANCELLED, JobPhase, LatestRelease, Origin, PAUSED, PausedDownload,
     Source, VersionTrack,
 };
-use artcraft_launcher_core::release::{Asset, Release};
-use artcraft_launcher_core::{CraftApp, Installed, PackageKind, SUITE, version};
+use guildhall_core::release::{Asset, Release};
+use guildhall_core::{CraftApp, Installed, PackageKind, SUITE, version};
 
 use crate::feed_throttle::{self, FeedThrottle, Outcome};
 use crate::http::{self, Http, Stop};
@@ -64,7 +64,7 @@ struct Shared {
     /// A detection pass is running; another request waits for the next one.
     detecting: AtomicBool,
     last_check: Mutex<Option<i64>>,
-    /// The newer ArtCraft Launcher release, once a check has found one.
+    /// The newer Guildhall release, once a check has found one.
     launcher_release: Mutex<Option<Release>>,
     /// How this launcher is installed, when it can replace itself. Worked out on the check thread
     /// just before a newer launcher is announced: finding out can ask the host's Flatpak, which
@@ -142,7 +142,7 @@ impl NativeBackend {
         let waker: Waker = Arc::new(waker);
         let paths = Paths::new().unwrap_or_else(|e| {
             log::error!("{e}; keeping files in the temporary folder");
-            Paths::under(&std::env::temp_dir().join("artcraft-launcher"))
+            Paths::under(&std::env::temp_dir().join("guildhall"))
         });
         let http = match Http::new() {
             Ok(h) => Some(h),
@@ -322,7 +322,7 @@ impl NativeBackend {
             restarting
         };
         if restarting {
-            let result = Err("ArtCraft Launcher is restarting to finish its update. Try again once it's back.".into());
+            let result = Err("Guildhall is restarting to finish its update. Try again once it's back.".into());
             self.shared.emit(Event::JobFinished { app: app.id.to_string(), result });
             return;
         }
@@ -406,7 +406,7 @@ impl NativeBackend {
         let (Some(install), Some(platform)) = (self.shared.self_install.get().cloned().flatten(), self.platform) else {
             self.shared.emit(Event::JobFinished {
                 app: id,
-                result: Err("this copy of ArtCraft Launcher can't update itself; download the new version instead".into()),
+                result: Err("this copy of Guildhall can't update itself; download the new version instead".into()),
             });
             return;
         };
@@ -466,7 +466,7 @@ enum Work {
 fn release_matches_track(release: &Release, track: &VersionTrack, prereleases: bool) -> bool {
     match track {
         VersionTrack::Stable => prereleases || (!release.prerelease && release.version.as_ref().is_some_and(version::is_stable)),
-        VersionTrack::Nightly => artcraft_launcher_core::release::is_nightly(release),
+        VersionTrack::Nightly => guildhall_core::release::is_nightly(release),
         VersionTrack::Pinned(tag) => &release.tag == tag,
     }
 }
@@ -529,11 +529,7 @@ fn run_install(
         return Err("the selected version isn't available yet. Check for updates before installing.".into());
     }
     let (asset, kind) = planned_asset(app, &release, platform, options, existing, record).ok_or_else(|| {
-        if platform.os == artcraft_launcher_core::Os::Linux
-            && options.install_locations.folder(app.id).is_some()
-            && existing.is_none()
-            && record.is_none()
-        {
+        if platform.os == guildhall_core::Os::Linux && options.install_locations.folder(app.id).is_some() && existing.is_none() && record.is_none() {
             "this release has no AppImage for a custom install folder".to_string()
         } else {
             format!("{} {} has no download for {}", app.name, release.version_label(), platform.label())
@@ -670,7 +666,7 @@ fn restart_blocked(mut busy: Vec<&str>) -> String {
         _ => (busy.join(", "), "were", "them"),
     };
     format!(
-        "ArtCraft Launcher didn't restart to update: {names} {were} still installing. Answer or close any password prompt, \
+        "Guildhall didn't restart to update: {names} {were} still installing. Answer or close any password prompt, \
          let {them} finish or cancel {them}, then press Update and restart again."
     )
 }
@@ -686,7 +682,7 @@ fn planned_asset(
     record: Option<&crate::manifest::Record>,
 ) -> Option<(Asset, PackageKind)> {
     let stems: Vec<&str> = app.stems().collect();
-    let custom_linux = platform.os == artcraft_launcher_core::Os::Linux
+    let custom_linux = platform.os == guildhall_core::Os::Linux
         && !process::in_sandbox()
         && existing.is_none()
         && record.is_none()
@@ -694,7 +690,7 @@ fn planned_asset(
     let kinds = if existing.is_none() && record.is_some_and(|r| r.kind == PackageKind::PortableZip) {
         vec![PackageKind::PortableZip]
     } else if custom_linux {
-        vec![artcraft_launcher_core::PackageKind::AppImage]
+        vec![guildhall_core::PackageKind::AppImage]
     } else {
         install::choose_kinds(app, existing, record, &options.kinds)
     };
@@ -722,7 +718,7 @@ fn planned_download(
     let existing = shared.installed.lock().unwrap_or_else(PoisonError::into_inner).get(app.id).cloned();
     let record = shared.manifest.lock().unwrap_or_else(PoisonError::into_inner).apps.get(app.id).cloned();
     let (asset, _) = planned_asset(app, &release, platform?, options, existing.as_ref(), record.as_ref())?;
-    artcraft_launcher_core::release::valid_file_name(&asset.name).then(|| (install::download_path(paths, &asset), asset.size))
+    guildhall_core::release::valid_file_name(&asset.name).then(|| (install::download_path(paths, &asset), asset.size))
 }
 
 /// What one check asks: which feed to poll (a local mirror trumps everything), and how much to
@@ -1003,13 +999,13 @@ fn fetch_feed(http: &Http, paths: &Paths, url: &str, throttle: &Mutex<FeedThrott
     if asked { FeedFetch::Failed } else { FeedFetch::Held }
 }
 
-/// The feed's address. `ARTCRAFT_LAUNCHER_FEED_URL` points at a staging server or a local copy
+/// The feed's address. `GUILDHALL_FEED_URL` points at a staging server or a local copy
 /// (only `https://`, or plain `http://` on localhost).
 fn feed_url() -> String {
-    std::env::var("ARTCRAFT_LAUNCHER_FEED_URL")
+    std::env::var("GUILDHALL_FEED_URL")
         .ok()
         .filter(|u| feed_url_override_allowed(u, cfg!(feature = "local-mirror")))
-        .unwrap_or_else(|| artcraft_launcher_core::feed::FEED_URL.to_string())
+        .unwrap_or_else(|| guildhall_core::feed::FEED_URL.to_string())
 }
 
 fn feed_url_override_allowed(url: &str, allow_https: bool) -> bool {
@@ -1018,7 +1014,7 @@ fn feed_url_override_allowed(url: &str, allow_https: bool) -> bool {
 
 use crate::http::is_loopback;
 
-/// `ARTCRAFT_LAUNCHER_DOWNLOAD_BASE`: a mirror on this machine (`cargo xtask local serve`) that
+/// `GUILDHALL_DOWNLOAD_BASE`: a mirror on this machine (`cargo xtask local serve`) that
 /// serves `release_info.json` and the builds it lists. While it's set, releases come only from
 /// there (never GitHub or ArtCraft's API), and its download links are trusted. Loopback only, so
 /// nothing but the developer's own builds can be installed this way, and only in builds with the
@@ -1027,21 +1023,19 @@ fn local_mirror() -> Option<String> {
     if !cfg!(feature = "local-mirror") {
         return None;
     }
-    let base = std::env::var("ARTCRAFT_LAUNCHER_DOWNLOAD_BASE").ok()?;
+    let base = std::env::var("GUILDHALL_DOWNLOAD_BASE").ok()?;
     let base = base.trim();
     if !is_loopback(base) || base.contains(['?', '#', '\\']) {
-        log::warn!(
-            "ignoring ARTCRAFT_LAUNCHER_DOWNLOAD_BASE={base}: only http://127.0.0.1:<port>/, http://localhost:<port>/ or http://[::1]:<port>/"
-        );
+        log::warn!("ignoring GUILDHALL_DOWNLOAD_BASE={base}: only http://127.0.0.1:<port>/, http://localhost:<port>/ or http://[::1]:<port>/");
         return None;
     }
     Some(if base.ends_with('/') { base.to_string() } else { format!("{base}/") })
 }
 
-/// The local mirror's feed: `ARTCRAFT_LAUNCHER_FEED_URL` if set, else `release_info.json` beside
+/// The local mirror's feed: `GUILDHALL_FEED_URL` if set, else `release_info.json` beside
 /// the builds. Asked every check (it's on this machine), and never saved over ArtCraft's.
 fn local_feed(http: &Http, base: &str) -> Option<Feed> {
-    let url = std::env::var("ARTCRAFT_LAUNCHER_FEED_URL").ok().filter(|u| is_loopback(u)).unwrap_or_else(|| format!("{base}release_info.json"));
+    let url = std::env::var("GUILDHALL_FEED_URL").ok().filter(|u| is_loopback(u)).unwrap_or_else(|| format!("{base}release_info.json"));
     match http.get_feed(&url) {
         Ok(body) => {
             let feed = Feed::parse(&body).map(|f| f.with_mirror(base));
@@ -1072,7 +1066,7 @@ fn mirror_chosen(app: &CraftApp, feed: Option<&Feed>, now: i64, track: &VersionT
     let (answer, origin, source) = mirror_latest(app, feed, now);
     let chosen = match (track, answer) {
         (VersionTrack::Stable, answer) => answer,
-        (VersionTrack::Nightly, Some(LatestRelease::Found(r))) if artcraft_launcher_core::release::is_nightly(&r) => Some(LatestRelease::Found(r)),
+        (VersionTrack::Nightly, Some(LatestRelease::Found(r))) if guildhall_core::release::is_nightly(&r) => Some(LatestRelease::Found(r)),
         (VersionTrack::Pinned(tag), Some(LatestRelease::Found(r))) if &r.tag == tag => Some(LatestRelease::Found(r)),
         (_, Some(LatestRelease::Failed(why))) => Some(LatestRelease::Failed(why)),
         _ => Some(LatestRelease::None),
@@ -1116,7 +1110,7 @@ impl NativeBackend {
     /// Starts fetching the pictures of an app's details page, unless they are already on their way.
     /// An app without a page, or a name that isn't an app, is ignored.
     fn fetch_screenshots(&self, app: &str) {
-        let Some(details) = artcraft_launcher_core::details::AppDetails::by_id(app) else { return };
+        let Some(details) = guildhall_core::details::AppDetails::by_id(app) else { return };
         if !self.shared.pictures_busy.lock().unwrap_or_else(PoisonError::into_inner).insert(details.id) {
             return;
         }
@@ -1246,9 +1240,9 @@ mod tests {
     use std::sync::atomic::AtomicUsize;
     use std::sync::mpsc;
 
-    use artcraft_launcher_core::InstallSource;
+    use guildhall_core::InstallSource;
 
-    use artcraft_launcher_core::protocol::LatestRelease;
+    use guildhall_core::protocol::LatestRelease;
 
     use super::*;
 
@@ -1654,14 +1648,14 @@ mod tests {
         assert_eq!(planned_asset(app, &release, platform, &portable_options, None, None).unwrap().1, PackageKind::PortableZip);
         let msi = Installed {
             version: None,
-            source: artcraft_launcher_core::InstallSource::Msi,
+            source: guildhall_core::InstallSource::Msi,
             location: r"C:\Apps\PhotoCraft\photocraft.exe".into(),
             package: None,
         };
         assert_eq!(planned_asset(app, &release, platform, &portable_options, Some(&msi), None).unwrap().1, PackageKind::Msi);
         let launcher = Installed {
             version: None,
-            source: artcraft_launcher_core::InstallSource::Launcher,
+            source: guildhall_core::InstallSource::Launcher,
             location: r"D:\Craft Apps\PhotoCraft\photocraft.exe".into(),
             package: None,
         };
@@ -1688,15 +1682,14 @@ mod tests {
         let platform = Platform { os: Os::Linux, arch: Arch::X64 };
         let options = BackendOptions {
             kinds: vec![PackageKind::Deb],
-            install_locations: artcraft_launcher_core::protocol::InstallLocations { root: Some("/custom/apps".into()), ..Default::default() },
+            install_locations: guildhall_core::protocol::InstallLocations { root: Some("/custom/apps".into()), ..Default::default() },
             ..Default::default()
         };
         let mut release = release("0.5.0");
         assert_eq!(planned_asset(app, &release, platform, &options, None, None).unwrap().1, PackageKind::AppImage);
         release.assets.retain(|a| !a.name.ends_with(".AppImage"));
         assert!(planned_asset(app, &release, platform, &options, None, None).is_none());
-        let existing =
-            Installed { version: None, source: artcraft_launcher_core::InstallSource::Deb, location: "/usr/bin/photocraft".into(), package: None };
+        let existing = Installed { version: None, source: guildhall_core::InstallSource::Deb, location: "/usr/bin/photocraft".into(), package: None };
         let system = BackendOptions { kinds: options.kinds.clone(), ..Default::default() };
         assert_eq!(
             planned_asset(app, &release, platform, &options, Some(&existing), None),

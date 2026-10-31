@@ -7,7 +7,7 @@ version = "0.11.1"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 rust-version = "1.95"
-repository = "https://github.com/storytold/craft-launcher"
+repository = "https://github.com/Mansi1/guildhall"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
@@ -20,9 +20,9 @@ dbg_macro = "warn"
 todo = "warn"
 
 [workspace.dependencies]
-artcraft-launcher-core = { path = "crates/core" }
-artcraft-launcher-ui-egui = { path = "crates/ui-egui" }
-artcraft-launcher-native = { path = "crates/native" }
+guildhall-core = { path = "crates/core" }
+guildhall-ui-egui = { path = "crates/ui-egui" }
+guildhall-native = { path = "crates/native" }
 egui = { version = "0.37", features = ["monochrome_emoji_fonts"] }
 eframe = { version = "0.37", default-features = false }
 egui_extras = { version = "0.37", default-features = false }

@@ -8,9 +8,9 @@
 //! The UI cannot see a Linux machine's package managers, so there it answers nothing and the
 //! field keeps saying "System default".
 
-use artcraft_launcher_core::platform::{parse_asset_name, pick_asset};
-use artcraft_launcher_core::protocol::LatestRelease;
-use artcraft_launcher_core::{Arch, CraftApp, Os, PackageKind};
+use guildhall_core::platform::{parse_asset_name, pick_asset};
+use guildhall_core::protocol::LatestRelease;
+use guildhall_core::{Arch, CraftApp, Os, PackageKind};
 
 use crate::app::{Host, LauncherUi};
 use crate::model::AppEntry;
@@ -82,7 +82,7 @@ mod tests {
 
     #[test]
     fn a_fresh_install_tries_the_preferred_format_then_the_rest() {
-        let app = &artcraft_launcher_core::SUITE[0];
+        let app = &guildhall_core::SUITE[0];
         assert_eq!(fresh_kinds(app, Os::Windows, &[]), [PackageKind::Msi, PackageKind::PortableZip]);
         assert_eq!(fresh_kinds(app, Os::Windows, &[PackageKind::PortableZip]), [PackageKind::PortableZip, PackageKind::Msi]);
         // A preference this platform cannot install is skipped, as the backend does.

@@ -1,13 +1,13 @@
-# Hosting ArtCraft Launcher for the web
+# Hosting Guildhall for the web
 
-`artcraft-launcher-web-<version>.zip` (from the GitHub release, or `packaging/web/package.sh`)
-holds a static site in `artcraft-launcher-web-<version>/`:
+`guildhall-web-<version>.zip` (from the GitHub release, or `packaging/web/package.sh`)
+holds a static site in `guildhall-web-<version>/`:
 
 | File | What it is |
 |---|---|
 | `index.html` | The page. It loads everything through relative URLs. |
-| `artcraft-launcher-web-<hash>.js` | wasm-bindgen glue (generated, ES module) |
-| `artcraft-launcher-web-<hash>_bg.wasm` | The app (egui, built with the `wasm-release` Cargo profile) |
+| `guildhall-web-<hash>.js` | wasm-bindgen glue (generated, ES module) |
+| `guildhall-web-<hash>_bg.wasm` | The app (egui, built with the `wasm-release` Cargo profile) |
 | `_headers`, `.htaccess` | Sample header rules for Netlify/Cloudflare Pages and Apache |
 
 There is no server-side code and no hand-written JavaScript. Upload the folder's contents anywhere
@@ -23,7 +23,7 @@ limit of 60 API requests per hour per IP address.
 
 ## Any path works
 
-All URLs in `index.html` are relative (`public_url = "./"` in `apps/artcraft-launcher-web/Trunk.toml`),
+All URLs in `index.html` are relative (`public_url = "./"` in `apps/guildhall-web/Trunk.toml`),
 so the site works at a domain root (`https://example.com/`), under a prefix
 (`https://example.com/apps/launcher/`) and from a CDN bucket. The asset names carry a content
 hash, so they can be cached forever. Only `index.html` needs revalidation.
@@ -63,7 +63,7 @@ Local test: `python3 -m http.server 8765` inside the folder, then open http://lo
 ```html
 <iframe
   src="https://example.com/launcher/"
-  title="ArtCraft Launcher"
+  title="Guildhall"
   style="width: 100%; height: 640px; border: 0;"
   allow="fullscreen"
   allowfullscreen>

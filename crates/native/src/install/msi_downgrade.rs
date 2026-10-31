@@ -25,7 +25,7 @@
 
 #![cfg_attr(not(windows), allow(dead_code))]
 
-use artcraft_launcher_core::protocol::CANCELLED;
+use guildhall_core::protocol::CANCELLED;
 
 use super::msi_batch::{self, DECLINED, LAUNCH_FAILED};
 

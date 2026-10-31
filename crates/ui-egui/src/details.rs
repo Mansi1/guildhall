@@ -3,14 +3,14 @@
 //! and screenshots come from `core::details`; the live facts (version, date, download size, release
 //! notes) from the app's latest GitHub release.
 
-use artcraft_launcher_core::CraftApp;
+use guildhall_core::CraftApp;
 use std::sync::Arc;
 
-use artcraft_launcher_core::details::AppDetails;
-use artcraft_launcher_core::platform::pick_asset;
-use artcraft_launcher_core::protocol::Command;
-use artcraft_launcher_core::status::AppStatus;
 use egui::{Color32, CornerRadius, Id, Margin, Order, Rect, RichText, Sense, Stroke, Ui, emath::easing, pos2, vec2};
+use guildhall_core::details::AppDetails;
+use guildhall_core::platform::pick_asset;
+use guildhall_core::protocol::Command;
+use guildhall_core::status::AppStatus;
 
 use crate::app::LauncherUi;
 use crate::model::AppEntry;
@@ -43,7 +43,7 @@ impl Picture {
         match result {
             // The backend already enforces the pixel budget; re-check here so bytes can never
             // reach egui's image loader (which allocates from the JPEG header) unvalidated.
-            Ok(bytes) if artcraft_launcher_core::details::screenshot_within_budget(&bytes) => Self::Ready(bytes.into()),
+            Ok(bytes) if guildhall_core::details::screenshot_within_budget(&bytes) => Self::Ready(bytes.into()),
             Ok(_) => Self::Failed("the picture's dimensions are too large".into()),
             Err(why) => Self::Failed(why),
         }
@@ -246,7 +246,7 @@ impl LauncherUi {
     fn neighbour_apps(&self, id: &str) -> (Option<String>, Option<String>) {
         let mut ids: Vec<&str> = self.visible_ids().into_iter().filter(|i| AppDetails::by_id(i).is_some()).collect();
         if !ids.contains(&id) {
-            ids = artcraft_launcher_core::SUITE.iter().map(|a| a.id).filter(|i| AppDetails::by_id(i).is_some()).collect();
+            ids = guildhall_core::SUITE.iter().map(|a| a.id).filter(|i| AppDetails::by_id(i).is_some()).collect();
         }
         let Some(at) = ids.iter().position(|i| *i == id) else { return (None, None) };
         if ids.len() < 2 {

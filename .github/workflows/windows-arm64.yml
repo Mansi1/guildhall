@@ -29,8 +29,8 @@ jobs:
     uses: storytold/craft-common-actions/.github/workflows/windows-arm64.yml@8bb4e5ab95443171104ad88113fe1ef9b0e5ce3f
     with:
       app-name: craft-launcher
-      app-dir: ArtCraft Launcher
-      install-relative-path: Programs/ArtCraft/Launcher
+      app-dir: Guildhall
+      install-relative-path: Programs/Guildhall/Launcher
       install-scope: perUser
       is-per-user: true
-      main-binary: artcraft-launcher.exe
+      main-binary: guildhall.exe

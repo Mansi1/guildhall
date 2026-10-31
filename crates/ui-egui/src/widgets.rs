@@ -290,12 +290,12 @@ pub fn window_edges(ctx: &egui::Context) {
 /// Whether `url` may be handed to the system/browser opener.
 ///
 /// Release assets, release pages and feed links all come from the network, so every external
-/// opener goes through the same check as [`release::safe_web_link`](artcraft_launcher_core::release::safe_web_link).
+/// opener goes through the same check as [`release::safe_web_link`](guildhall_core::release::safe_web_link).
 /// The one intentional non-https target is the exact Discord app deep link, which the desktop
 /// shell intercepts and opens through the system opener with a web fallback; arbitrary custom
 /// schemes stay refused.
 pub(crate) fn external_link_allowed(url: &str) -> bool {
-    artcraft_launcher_core::release::safe_web_link(url) || url == artcraft_launcher_core::catalog::DISCORD_APP_URL
+    guildhall_core::release::safe_web_link(url) || url == guildhall_core::catalog::DISCORD_APP_URL
 }
 
 /// Opens a UI link only after [`external_link_allowed`]; anything else is logged and dropped.
@@ -604,16 +604,6 @@ pub fn more_menu<R>(ui: &mut Ui, app_name: &str, add_contents: impl FnOnce(&mut 
     response.accessible_name(crate::i18n::fmt(tl!("More actions for {name}"), &[("name", app_name)]));
 }
 
-/// ArtCraft's social accounts as a row of small monochrome icons (faint, brighter on hover).
-/// In a right-to-left layout they still read left to right.
-pub fn social_icons(ui: &mut Ui, size: f32) {
-    let links: Vec<IconLink> = artcraft_launcher_core::catalog::SOCIAL
-        .iter()
-        .map(|(name, url)| IconLink { name, label: (*name).to_string(), tip: crate::i18n::fmt(tl!("ArtCraft on {name}"), &[("name", name)]), url })
-        .collect();
-    icon_links(ui, size, &links);
-}
-
 /// One logo that opens a page: `name` picks the picture, `label` is what a screen reader says,
 /// `tip` is the hover text.
 pub struct IconLink<'a> {
@@ -621,12 +611,6 @@ pub struct IconLink<'a> {
     pub label: String,
     pub tip: String,
     pub url: &'a str,
-}
-
-/// The width [`icon_links`] takes for `count` logos `size` wide.
-pub fn icon_links_width(count: usize, size: f32) -> f32 {
-    let n = count as f32;
-    n * (size + 2.0 * crate::theme::ICON_LINK_PAD) + (n - 1.0).max(0.0) * crate::theme::ICON_LINK_GAP
 }
 
 /// A row of logo links, given in reading order; each is `size` wide, spaced by the theme's
@@ -663,12 +647,12 @@ fn icon_link(ui: &mut Ui, size: f32, link: &IconLink<'_>) {
 }
 
 /// An app's name as the site sets it: Archivo, with "Craft" in the app's colour.
-pub fn wordmark(ui: &mut Ui, app: &artcraft_launcher_core::CraftApp, size: f32) -> Response {
+pub fn wordmark(ui: &mut Ui, app: &guildhall_core::CraftApp, size: f32) -> Response {
     wordmark_in(ui, app, size, true)
 }
 
 /// [`wordmark`], with "Craft" in the app's colour or, when `in_colour` is false, in grey.
-pub fn wordmark_in(ui: &mut Ui, app: &artcraft_launcher_core::CraftApp, size: f32, in_colour: bool) -> Response {
+pub fn wordmark_in(ui: &mut Ui, app: &guildhall_core::CraftApp, size: f32, in_colour: bool) -> Response {
     let t = Tokens::get(ui.ctx());
     let (prefix, craft) = app.name.strip_suffix("Craft").map_or((app.name, ""), |p| (p, "Craft"));
     let mut job = egui::text::LayoutJob::default();
@@ -751,8 +735,8 @@ mod tests {
         }
         assert!(opened_urls(&ctx).is_empty(), "hostile URLs reached the opener: {:?}", opened_urls(&ctx));
 
-        open_external_link(&ctx, artcraft_launcher_core::catalog::DISCORD_APP_URL);
-        assert_eq!(opened_urls(&ctx), vec![artcraft_launcher_core::catalog::DISCORD_APP_URL.to_string()]);
+        open_external_link(&ctx, guildhall_core::catalog::DISCORD_APP_URL);
+        assert_eq!(opened_urls(&ctx), vec![guildhall_core::catalog::DISCORD_APP_URL.to_string()]);
     }
 
     /// Each glyph must be distinct geometry, not the same fallback shape for all four.

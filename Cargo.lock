@@ -271,101 +271,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3fb67a6e08acf24fdeccbac2cb6ac4305825bd1f117462e0e6f2f193345ad56"
 
 [[package]]
-name = "artcraft-launcher"
-version = "0.11.1"
-dependencies = [
- "artcraft-launcher-core",
- "artcraft-launcher-native",
- "artcraft-launcher-ui-egui",
- "craft-quit",
- "eframe",
- "egui",
- "env_logger",
- "image",
- "log",
- "notify-rust",
- "objc2 0.6.5",
- "objc2-app-kit 0.3.2",
- "objc2-foundation 0.3.2",
- "rfd",
- "ron",
- "serde",
- "tray-icon",
- "winreg",
- "winresource",
- "zbus",
-]
-
-[[package]]
-name = "artcraft-launcher-core"
-version = "0.11.1"
-dependencies = [
- "jiff",
- "semver",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "artcraft-launcher-native"
-version = "0.11.1"
-dependencies = [
- "artcraft-launcher-core",
- "craft-update",
- "dirs 6.0.0",
- "dunce",
- "flate2",
- "getrandom 0.3.4",
- "log",
- "plist",
- "serde",
- "serde_json",
- "sha2",
- "tar",
- "tempfile",
- "ureq",
- "verifysign",
- "winreg",
- "winsafe",
- "zip",
-]
-
-[[package]]
-name = "artcraft-launcher-ui-egui"
-version = "0.11.1"
-dependencies = [
- "artcraft-launcher-core",
- "craft-ui",
- "egui",
- "egui_extras",
- "egui_kittest",
- "image",
- "jiff",
- "js-sys",
- "log",
- "serde",
- "serde_json",
- "skrifa",
- "sys-locale",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "artcraft-launcher-web"
-version = "0.11.1"
-dependencies = [
- "artcraft-launcher-core",
- "artcraft-launcher-ui-egui",
- "eframe",
- "egui",
- "js-sys",
- "log",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
-]
-
-[[package]]
 name = "as-raw-xcb-connection"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2214,6 +2119,101 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.119",
+]
+
+[[package]]
+name = "guildhall"
+version = "0.11.1"
+dependencies = [
+ "craft-quit",
+ "eframe",
+ "egui",
+ "env_logger",
+ "guildhall-core",
+ "guildhall-native",
+ "guildhall-ui-egui",
+ "image",
+ "log",
+ "notify-rust",
+ "objc2 0.6.5",
+ "objc2-app-kit 0.3.2",
+ "objc2-foundation 0.3.2",
+ "rfd",
+ "ron",
+ "serde",
+ "tray-icon",
+ "winreg",
+ "winresource",
+ "zbus",
+]
+
+[[package]]
+name = "guildhall-core"
+version = "0.11.1"
+dependencies = [
+ "jiff",
+ "semver",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "guildhall-native"
+version = "0.11.1"
+dependencies = [
+ "craft-update",
+ "dirs 6.0.0",
+ "dunce",
+ "flate2",
+ "getrandom 0.3.4",
+ "guildhall-core",
+ "log",
+ "plist",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tar",
+ "tempfile",
+ "ureq",
+ "verifysign",
+ "winreg",
+ "winsafe",
+ "zip",
+]
+
+[[package]]
+name = "guildhall-ui-egui"
+version = "0.11.1"
+dependencies = [
+ "craft-ui",
+ "egui",
+ "egui_extras",
+ "egui_kittest",
+ "guildhall-core",
+ "image",
+ "jiff",
+ "js-sys",
+ "log",
+ "serde",
+ "serde_json",
+ "skrifa",
+ "sys-locale",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "guildhall-web"
+version = "0.11.1"
+dependencies = [
+ "eframe",
+ "egui",
+ "guildhall-core",
+ "guildhall-ui-egui",
+ "js-sys",
+ "log",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]

@@ -1,27 +1,44 @@
-//! ArtCraft Launcher updating itself.
+//! Guildhall updating itself.
 //!
-//! Delegated to [`craft_update::self_update`].
+//! Delegated to [`craft_update::self_update`], with Guildhall's own [`APP`]. In-place updates are
+//! off for now: `craft-update` still assumes ArtCraft's identity for every app it replaces
+//! (`ai.storyteller.<id>` bundle ids, the `Learning Machines LLC` installer publisher and ArtCraft's
+//! Apple Developer ID team), so it can't safely recognise or verify a Guildhall install. Until it
+//! takes an app's identity as data (storytold/craft-launcher#989, step 1), [`current`] reports no
+//! replaceable install and the launcher only announces a newer release, linking to its page.
 
 use std::ffi::OsString;
 
-use artcraft_launcher_core::platform::Platform;
-use artcraft_launcher_core::protocol::JobPhase;
-use artcraft_launcher_core::release::Release;
-use artcraft_launcher_core::version::Version;
+use guildhall_core::platform::Platform;
+use guildhall_core::protocol::JobPhase;
+use guildhall_core::release::Release;
+use guildhall_core::version::Version;
 
 use crate::http::{Http, Stop};
 use crate::paths::Paths;
 
 pub use craft_update::self_update::{FINISH_FLAG, Install, PRETEND_VAR, is_self_updating};
 
+/// Guildhall, as `craft-update` knows it: releases come only from its own repository.
+pub const APP: craft_update::App = craft_update::App {
+    developer: "Guildhall contributors",
+    ..craft_update::App::new(
+        guildhall_core::catalog::LAUNCHER.id,
+        guildhall_core::catalog::LAUNCHER.name,
+        guildhall_core::catalog::LAUNCHER.tagline,
+        guildhall_core::catalog::LAUNCHER_REPO,
+    )
+};
+
 /// The version this launcher counts as (see [`PRETEND_VAR`]).
 pub fn current_version() -> Option<Version> {
-    craft_update::self_update::current_version(&craft_update::suite::LAUNCHER, env!("CARGO_PKG_VERSION"))
+    craft_update::self_update::current_version(&APP, env!("CARGO_PKG_VERSION"))
 }
 
-/// How this copy is installed, if it's one the launcher knows how to replace.
+/// How this copy is installed, if it's one the launcher knows how to replace: never, for now (see
+/// the module docs), so the launcher offers the release page instead of replacing itself.
 pub fn current() -> Option<Install> {
-    craft_update::self_update::current(&craft_update::suite::LAUNCHER)
+    None
 }
 
 fn to_update_paths(paths: &Paths) -> craft_update::Paths {
@@ -48,16 +65,16 @@ fn to_update_release(release: &Release) -> craft_update::Release {
 fn to_update_platform(platform: Platform) -> craft_update::Platform {
     craft_update::Platform {
         os: match platform.os {
-            artcraft_launcher_core::Os::Windows => craft_update::Os::Windows,
-            artcraft_launcher_core::Os::MacOs => craft_update::Os::MacOs,
-            artcraft_launcher_core::Os::Linux => craft_update::Os::Linux,
-            artcraft_launcher_core::Os::FreeBsd => craft_update::Os::FreeBsd,
+            guildhall_core::Os::Windows => craft_update::Os::Windows,
+            guildhall_core::Os::MacOs => craft_update::Os::MacOs,
+            guildhall_core::Os::Linux => craft_update::Os::Linux,
+            guildhall_core::Os::FreeBsd => craft_update::Os::FreeBsd,
         },
         arch: match platform.arch {
-            artcraft_launcher_core::Arch::X64 => craft_update::Arch::X64,
-            artcraft_launcher_core::Arch::Arm64 => craft_update::Arch::Arm64,
-            artcraft_launcher_core::Arch::X86 => craft_update::Arch::X86,
-            artcraft_launcher_core::Arch::Riscv64 => craft_update::Arch::Riscv64,
+            guildhall_core::Arch::X64 => craft_update::Arch::X64,
+            guildhall_core::Arch::Arm64 => craft_update::Arch::Arm64,
+            guildhall_core::Arch::X86 => craft_update::Arch::X86,
+            guildhall_core::Arch::Riscv64 => craft_update::Arch::Riscv64,
         },
     }
 }
@@ -92,7 +109,7 @@ pub fn update(
     let update_release = to_update_release(release);
     let update_platform = to_update_platform(platform);
     let update_paths = to_update_paths(paths);
-    let update_http = craft_update::Http::new("ArtCraft-Launcher/SelfUpdate")?;
+    let update_http = craft_update::Http::new("Guildhall/SelfUpdate")?;
     let mut update_phase = |p: craft_update::JobPhase| {
         phase(match p {
             craft_update::JobPhase::Downloading { done, total } => JobPhase::Downloading { done, total },
@@ -104,7 +121,7 @@ pub fn update(
         });
     };
     craft_update::self_update::update(
-        &craft_update::suite::LAUNCHER,
+        &APP,
         install,
         &update_release,
         update_platform,
@@ -119,7 +136,7 @@ pub fn update(
 
 /// Finishes an update when this program was started as the update helper.
 pub fn finish(args: &[OsString]) -> Option<Result<(), String>> {
-    craft_update::self_update::finish(&craft_update::suite::LAUNCHER, args)
+    craft_update::self_update::finish(&APP, args)
 }
 
 #[cfg(test)]
@@ -129,5 +146,12 @@ mod tests {
     #[test]
     fn a_development_build_does_not_update_itself() {
         assert_eq!(current(), None);
+    }
+
+    #[test]
+    fn updates_come_from_guildhalls_own_repository() {
+        assert_eq!(APP.repo, guildhall_core::catalog::LAUNCHER_REPO);
+        assert_eq!(APP.id, guildhall_core::catalog::LAUNCHER_ID);
+        assert_ne!(APP.repo, craft_update::suite::LAUNCHER.repo);
     }
 }

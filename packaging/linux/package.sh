@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Build and package ArtCraft Launcher for Linux (<arch> is x86_64, aarch64 or riscv64):
+# Build and package Guildhall for Linux (<arch> is x86_64, aarch64 or riscv64):
 #
-#   $DIST/artcraft-launcher-<version>-linux-<arch>.AppImage  any distro with glibc >= the build host's
-#   $DIST/artcraft-launcher-<version>-linux-<arch>.AppImage.zsync  delta updates (needs zsyncmake)
-#   $DIST/artcraft-launcher-<version>-linux-<arch>.deb       Debian, Ubuntu, Mint, Pop!_OS, ...
-#   $DIST/artcraft-launcher-<version>-linux-<arch>.rpm       Fedora, openSUSE, RHEL, ...
-#   $DIST/artcraft-launcher-<version>-linux-<arch>.tar.gz    plain FHS-style tree (bin/, share/)
+#   $DIST/guildhall-<version>-linux-<arch>.AppImage  any distro with glibc >= the build host's
+#   $DIST/guildhall-<version>-linux-<arch>.AppImage.zsync  delta updates (needs zsyncmake)
+#   $DIST/guildhall-<version>-linux-<arch>.deb       Debian, Ubuntu, Mint, Pop!_OS, ...
+#   $DIST/guildhall-<version>-linux-<arch>.rpm       Fedora, openSUSE, RHEL, ...
+#   $DIST/guildhall-<version>-linux-<arch>.tar.gz    plain FHS-style tree (bin/, share/)
 #
 # Usage: packaging/linux/package.sh [--skip-build] [--formats "appimage deb rpm tar" or appimage,deb,rpm,tar]
 #
@@ -22,8 +22,8 @@ set -euo pipefail
 # shellcheck source=../env.sh
 . "$(dirname "${BASH_SOURCE[0]}")/../env.sh"
 HERE="$ROOT/packaging/linux"
-APP_ID=ai.storyteller.artcraft-launcher
-PKG=artcraft-launcher
+APP_ID=io.github.mansi1.guildhall
+PKG=guildhall
 # Verify a downloaded file's sha256 against its expected hex digest.
 check_sha256() {
   local expected="$1"
@@ -57,10 +57,10 @@ case "$ARCH" in
   aarch64 | arm64) ARCH=aarch64; DEB_ARCH=arm64 ;;
   *) echo "unsupported architecture $ARCH" >&2; exit 2 ;;
 esac
-export ARTCRAFT_LAUNCHER_MAINTAINER="${ARTCRAFT_LAUNCHER_MAINTAINER:-ArtCraft Launcher maintainers <craft-launcher@storyteller.ai>}"
+export GUILDHALL_MAINTAINER="${GUILDHALL_MAINTAINER:-Guildhall maintainers <craft-launcher@storyteller.ai>}"
 BASENAME="$PKG-$VERSION-linux-$ARCH"
 
-echo "==> ArtCraft Launcher $VERSION for Linux $ARCH ($FORMATS)"
+echo "==> Guildhall $VERSION for Linux $ARCH ($FORMATS)"
 
 if [[ "$SKIP_BUILD" = 0 ]]; then
   if [[ -n "${CROSS_TARGET:-}" ]]; then
@@ -79,7 +79,7 @@ install -Dm755 "$BIN/$PKG" "$STAGE/usr/bin/$PKG"
 "${CROSS_COMPILE:-}strip" "$STAGE/usr/bin/$PKG" 2>/dev/null || true
 install -Dm644 "$HERE/$APP_ID.desktop" "$STAGE/usr/share/applications/$APP_ID.desktop"
 mkdir -p "$STAGE/usr/share/metainfo"
-sed -e "s/@VERSION@/$VERSION/g" -e "s/@DATE@/$ARTCRAFT_LAUNCHER_BUILD_DATE/g" \
+sed -e "s/@VERSION@/$VERSION/g" -e "s/@DATE@/$GUILDHALL_BUILD_DATE/g" \
   "$HERE/$APP_ID.metainfo.xml.in" >"$STAGE/usr/share/metainfo/$APP_ID.metainfo.xml"
 mkdir -p "$STAGE/usr/share/icons"
 cp -R "$ROOT/assets/app-icon/hicolor" "$STAGE/usr/share/icons/"
@@ -136,7 +136,7 @@ if has appimage; then
     echo "no pinned AppImage runtime for $ARCH; build the AppImage on x86_64 or aarch64" >&2
     exit 2
   fi
-  APPDIR="$WORK/ArtCraftLauncher.AppDir"
+  APPDIR="$WORK/Guildhall.AppDir"
   cp -R "$STAGE" "$APPDIR"
   # AppRun is a script, not a symlink: it installs the .desktop entry and icons into
   # $XDG_DATA_HOME before launching, so Wayland compositors can resolve the window's
@@ -185,8 +185,8 @@ if has appimage; then
   # file and fetch only the blocks that changed in a newer release, through the .zsync published
   # next to each AppImage on GitHub Releases. `latest` is the newest published release that is
   # not a pre-release. A fork's builds point at its own releases through GITHUB_REPOSITORY.
-  # The repo is craft-launcher while the files are artcraft-launcher-*.
-  REPO="${GITHUB_REPOSITORY:-storytold/craft-launcher}"
+  # The repo is craft-launcher while the files are guildhall-*.
+  REPO="${GITHUB_REPOSITORY:-Mansi1/guildhall}"
   UPDATE_INFO="gh-releases-zsync|${REPO%%/*}|${REPO#*/}|latest|$PKG-*-linux-$ARCH.AppImage.zsync"
   # Extract-and-run: works without FUSE (containers, CI). The output embeds the static runtime,
   # so users don't need libfuse2 either. With zsyncmake on the host (CI installs the zsync

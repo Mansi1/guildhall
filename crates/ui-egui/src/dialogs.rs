@@ -1,9 +1,9 @@
 //! Modal dialogs: release notes, uninstall confirmation, settings.
 
 use crate::i18n::fmt;
-use artcraft_launcher_core::Os;
-use artcraft_launcher_core::protocol::Command;
 use egui::{RichText, vec2};
+use guildhall_core::Os;
+use guildhall_core::protocol::Command;
 
 use crate::app::{Dialog, Host, LauncherUi};
 use crate::theme::{self, Tokens};
@@ -151,11 +151,11 @@ impl LauncherUi {
     /// Offers a new launcher version and returns whether the dialog should close. With self-update
     /// it queues `UpdateLauncher` and closes; otherwise it opens the platform download (or the
     /// release page) and closes. "Later" closes without doing either.
-    fn launcher_update_dialog(&mut self, ui: &mut egui::Ui, r: &artcraft_launcher_core::Release) -> bool {
+    fn launcher_update_dialog(&mut self, ui: &mut egui::Ui, r: &guildhall_core::Release) -> bool {
         let t = Tokens::get(ui.ctx());
         ui.set_width(480.0f32.min(ui.ctx().content_rect().width() - 80.0));
-        let title = fmt(tl!("ArtCraft Launcher {version} is available."), &[("version", &r.version_label())]);
-        Self::title(ui, Some(crate::icons::artcraft_mark()), &title, "");
+        let title = fmt(tl!("Guildhall {version} is available."), &[("version", &r.version_label())]);
+        Self::title(ui, Some(crate::icons::guildhall_mark()), &title, "");
         let message = if self.caps.self_update {
             tl!("A new version is available. Would you like to relaunch with the updated version?")
         } else {
@@ -202,15 +202,13 @@ impl LauncherUi {
         ui.set_width(420.0);
         Self::title(ui, crate::icons::app(id), &fmt(tl!("Uninstall {name}?"), &[("name", entry.app.name)]), "");
         let how = match entry.installed.as_ref().map(|i| i.source) {
-            Some(artcraft_launcher_core::InstallSource::MacApp) => tl!("The app will be moved to the Trash. Your documents and settings stay."),
-            Some(artcraft_launcher_core::InstallSource::Msi) => {
+            Some(guildhall_core::InstallSource::MacApp) => tl!("The app will be moved to the Trash. Your documents and settings stay."),
+            Some(guildhall_core::InstallSource::Msi) => {
                 tl!("Windows will remove it like any installed program. Your documents and settings stay.")
             }
-            Some(
-                artcraft_launcher_core::InstallSource::Deb
-                | artcraft_launcher_core::InstallSource::Rpm
-                | artcraft_launcher_core::InstallSource::Pacman,
-            ) => tl!("Your system's package manager will remove it, and may ask for your password. Your documents and settings stay."),
+            Some(guildhall_core::InstallSource::Deb | guildhall_core::InstallSource::Rpm | guildhall_core::InstallSource::Pacman) => {
+                tl!("Your system's package manager will remove it, and may ask for your password. Your documents and settings stay.")
+            }
             _ => tl!("The app will be removed. Your documents and settings stay."),
         };
         ui.label(RichText::new(how).color(t.muted));

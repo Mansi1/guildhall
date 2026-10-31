@@ -1,6 +1,6 @@
 # Launcher installation paths
 
-New copies use `%LOCALAPPDATA%\Programs\ArtCraft\Launcher`. Updates restore the existing
+New copies use `%LOCALAPPDATA%\Programs\Guildhall\Launcher`. Updates restore the existing
 registered exact folder, and an explicit `INSTALLFOLDER` wins. The existing UpgradeCode,
 per-user scope, account-owned registrations, shortcuts and desktop preference remain intact.
 

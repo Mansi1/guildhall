@@ -4,10 +4,10 @@
 # Exports:
 #   ROOT                           workspace root
 #   VERSION                        [workspace.package] version from Cargo.toml
-#                                  (override: ARTCRAFT_LAUNCHER_VERSION)
+#                                  (override: GUILDHALL_VERSION)
 #   DIST                           output directory for release artifacts (default: $ROOT/dist/release)
-#   ARTCRAFT_LAUNCHER_BUILD_SHA    git commit baked into the binaries (read by the app's build.rs)
-#   ARTCRAFT_LAUNCHER_BUILD_DATE   UTC build date, YYYY-MM-DD
+#   GUILDHALL_BUILD_SHA    git commit baked into the binaries (read by the app's build.rs)
+#   GUILDHALL_BUILD_DATE   UTC build date, YYYY-MM-DD
 #   CARGO_TARGET_DIR               cargo's target dir (default: $ROOT/target)
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -23,7 +23,7 @@ workspace_version() {
   return
 }
 
-VERSION="${ARTCRAFT_LAUNCHER_VERSION:-$(workspace_version)}"
+VERSION="${GUILDHALL_VERSION:-$(workspace_version)}"
 if [[ -z "$VERSION" ]]; then
   echo "error: could not read [workspace.package] version from $ROOT/Cargo.toml" >&2
   exit 1
@@ -34,11 +34,11 @@ DIST="${DIST:-$ROOT/dist/release}"
 mkdir -p "$DIST"
 export DIST
 
-if [[ -z "${ARTCRAFT_LAUNCHER_BUILD_SHA:-}" ]]; then
-  ARTCRAFT_LAUNCHER_BUILD_SHA="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || true)"
+if [[ -z "${GUILDHALL_BUILD_SHA:-}" ]]; then
+  GUILDHALL_BUILD_SHA="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || true)"
 fi
-export ARTCRAFT_LAUNCHER_BUILD_SHA
-export ARTCRAFT_LAUNCHER_BUILD_DATE="${ARTCRAFT_LAUNCHER_BUILD_DATE:-$(date -u +%Y-%m-%d)}"
+export GUILDHALL_BUILD_SHA
+export GUILDHALL_BUILD_DATE="${GUILDHALL_BUILD_DATE:-$(date -u +%Y-%m-%d)}"
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$ROOT/target}"
 
 # Emit a GitHub Actions warning (plain stderr outside Actions).

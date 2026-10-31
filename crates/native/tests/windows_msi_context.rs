@@ -2,12 +2,12 @@
 #![cfg(windows)]
 #![allow(clippy::unwrap_used)]
 
-use artcraft_launcher_core::protocol::InstallLocations;
-use artcraft_launcher_core::release::{Asset, Release};
-use artcraft_launcher_core::{CraftApp, InstallSource, Installed, PackageKind, version};
-use artcraft_launcher_native::http::{Http, Stop};
-use artcraft_launcher_native::install::{self, Job};
-use artcraft_launcher_native::paths::Paths;
+use guildhall_core::protocol::InstallLocations;
+use guildhall_core::release::{Asset, Release};
+use guildhall_core::{CraftApp, InstallSource, Installed, PackageKind, version};
+use guildhall_native::http::{Http, Stop};
+use guildhall_native::install::{self, Job};
+use guildhall_native::paths::Paths;
 
 #[test]
 fn uncertain_msi_updates_do_not_download_or_start_an_installer() {

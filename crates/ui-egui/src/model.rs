@@ -1,10 +1,10 @@
 //! What the UI knows about each app.
 
-use artcraft_launcher_core::platform::{Platform, pick_asset};
-use artcraft_launcher_core::protocol::{JobPhase, LatestRelease, PausedDownload};
-use artcraft_launcher_core::release::Release;
-use artcraft_launcher_core::status::{self, AppStatus, Latest};
-use artcraft_launcher_core::{CraftApp, Installed};
+use guildhall_core::platform::{Platform, pick_asset};
+use guildhall_core::protocol::{JobPhase, LatestRelease, PausedDownload};
+use guildhall_core::release::Release;
+use guildhall_core::status::{self, AppStatus, Latest};
+use guildhall_core::{CraftApp, Installed};
 
 use crate::i18n::t;
 
@@ -17,7 +17,7 @@ pub struct AppEntry {
     pub detected: bool,
     pub job: Option<JobPhase>,
     /// The service `latest` came from.
-    pub origin: Option<artcraft_launcher_core::protocol::Origin>,
+    pub origin: Option<guildhall_core::protocol::Origin>,
     /// A download waiting to be resumed.
     pub paused: Option<PausedDownload>,
     /// A finished download waiting for another try at installing it.

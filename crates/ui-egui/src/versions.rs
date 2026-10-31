@@ -1,9 +1,9 @@
 //! Published-release selector. A choice changes the release used by future checks, not a running install.
-use artcraft_launcher_core::catalog::{CraftApp, LAUNCHER, LAUNCHER_ID};
-use artcraft_launcher_core::protocol::VersionTrack;
-use artcraft_launcher_core::release::{Release, choose_version, is_nightly};
-use artcraft_launcher_core::version;
 use egui::{RichText, Ui};
+use guildhall_core::catalog::{CraftApp, LAUNCHER, LAUNCHER_ID};
+use guildhall_core::protocol::VersionTrack;
+use guildhall_core::release::{Release, choose_version, is_nightly};
+use guildhall_core::version;
 
 use crate::app::LauncherUi;
 use crate::theme::Tokens;
@@ -201,7 +201,7 @@ impl LauncherUi {
     fn has_version_download(&self, app: &CraftApp, r: &Release) -> bool {
         let Some(platform) = self.platform else { return false };
         let stems: Vec<&str> = app.stems().collect();
-        artcraft_launcher_core::platform::pick_asset(r, &stems, platform, platform.download_kinds())
+        guildhall_core::platform::pick_asset(r, &stems, platform, platform.download_kinds())
             .is_some_and(|(asset, _)| asset.sha256.is_some() || r.sums_asset().is_some())
     }
 
